@@ -2028,40 +2028,23 @@ async function runAnalysis() {
       throw new Error("JSON parse failed.\n\nRaw response (first 500 chars):\n" + txt.substring(0, 500));
     }
 
-    // Check if the single PDF needs splitting
-    let rawTexts = [];
+    // Reject PDFs that are too long for the API rate limit
     const pdfFile = files.find(f => f.type === "application/pdf");
     const pdfPageCount = pdfFile ? await getPDFPageCount(pdfFile) : 0;
-
-    if (pdfPageCount > 20 && pdfFile) {
-      setStep("step-extract", "active", `PDF has ${pdfPageCount} pages — splitting into 2 API calls…`);
-      const [half1, half2] = await splitPDFInHalf(pdfFile);
-      const otherFiles = files.filter(f => f !== pdfFile);
-      const [r1, r2] = await Promise.all([
-        callClaude([...otherFiles, half1]),
-        callClaude([half2])
-      ]);
-      rawTexts = [r1, r2];
-      setStep("step-extract", "done", `Extracted via 2 API calls (${pdfPageCount} pages split at ${Math.ceil(pdfPageCount/2)})`);
-    } else {
-      rawTexts = [await callClaude(files)];
-      setStep("step-extract", "done", `Extracted ${rawTexts[0].length} chars from Claude`);
+    if (pdfPageCount > 20) {
+      throw new Error(`Report too long: this PDF has ${pdfPageCount} pages. Please upload a report with 20 pages or fewer.`);
     }
+
+    const rawText = await callClaude(files);
+    setStep("step-extract", "done", `Extracted ${rawText.length} chars from Claude`);
 
     // ── STEP 2: Parse JSON ──
     setStep("step-parse", "active", "Parsing structured data…");
     let parsed;
     try {
-      if (rawTexts.length === 1) {
-        parsed = parseRawText(rawTexts[0]);
-      } else {
-        // Two-call split: parse both and merge tests arrays
-        const [p1, p2] = rawTexts.map(parseRawText);
-        parsed = p1;
-        parsed.tests = [...(p1.tests || []), ...(p2.tests || [])];
-      }
+      parsed = parseRawText(rawText);
     } catch(e) {
-      throw new Error("JSON parse failed: " + e.message + "\n\nRaw response (first 500 chars):\n" + rawTexts[0].substring(0, 500));
+      throw new Error("JSON parse failed: " + e.message + "\n\nRaw response (first 500 chars):\n" + rawText.substring(0, 500));
     }
 
     // Merge patient info from form if not in report
