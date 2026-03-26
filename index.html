@@ -268,6 +268,76 @@
   .test-explain-inner strong { color: var(--text); font-weight: 500; }
   .test-explain-loading { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
 
+  /* ── Body Map ───────────────────────────────────────── */
+  .bodymap-wrap { margin-bottom: 32px; }
+  .bodymap-title { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+  .bodymap-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .bodymap-diagram { position: relative; width: 100%; min-height: 620px; display: flex; align-items: center; justify-content: center; }
+
+  /* SVG body */
+  .bodymap-svg-wrap { position: relative; z-index: 2; flex-shrink: 0; }
+  .bodymap-svg-wrap svg { display: block; }
+
+  /* organ glows */
+  .organ-shape { transition: filter 0.25s, opacity 0.25s; cursor: default; }
+  .organ-shape.status-good     { fill: rgba(34,197,94,0.18);  stroke: #22c55e; }
+  .organ-shape.status-caution  { fill: rgba(245,158,11,0.18); stroke: #f59e0b; }
+  .organ-shape.status-attention{ fill: rgba(239,68,68,0.18);  stroke: #ef4444; }
+  .organ-shape.status-none     { fill: rgba(122,122,144,0.08);stroke: rgba(122,122,144,0.3); }
+  .organ-shape:hover { filter: brightness(1.4); }
+
+  /* connector lines via SVG overlay */
+  .bodymap-lines { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+
+  /* value cards */
+  .bodymap-cards-left  { position: absolute; left: 0;   top: 0; bottom: 0; width: calc(50% - 110px); display: flex; flex-direction: column; justify-content: space-around; padding: 20px 0; z-index: 3; }
+  .bodymap-cards-right { position: absolute; right: 0;  top: 0; bottom: 0; width: calc(50% - 110px); display: flex; flex-direction: column; justify-content: space-around; padding: 20px 0; z-index: 3; }
+
+  .organ-card { border-radius: 10px; border: 1px solid var(--border2); background: var(--surface); padding: 10px 13px; cursor: default; transition: all 0.2s; position: relative; min-width: 0; }
+  .organ-card:hover { background: var(--surface2); border-color: var(--border2); transform: scale(1.02); z-index: 10; }
+  .organ-card.status-good      { border-left: 3px solid #22c55e; }
+  .organ-card.status-caution   { border-left: 3px solid #f59e0b; }
+  .organ-card.status-attention { border-left: 3px solid #ef4444; }
+  .organ-card.status-none      { border-left: 3px solid rgba(122,122,144,0.3); opacity: 0.6; }
+
+  .organ-card-header { display: flex; align-items: center; gap: 7px; margin-bottom: 0; }
+  .organ-card-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .status-good .organ-card-dot      { background: #22c55e; }
+  .status-caution .organ-card-dot   { background: #f59e0b; }
+  .status-attention .organ-card-dot { background: #ef4444; }
+  .status-none .organ-card-dot      { background: rgba(122,122,144,0.4); }
+  .organ-card-name { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* expanded detail on hover */
+  .organ-card-detail { display: none; margin-top: 9px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .organ-card:hover .organ-card-detail { display: block; }
+  .organ-test-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 2px 0; }
+  .organ-test-name { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+  .organ-test-val  { font-family: var(--font-mono); font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .organ-test-val.val-N  { color: var(--green); }
+  .organ-test-val.val-H  { color: var(--red); }
+  .organ-test-val.val-L  { color: var(--amber); }
+  .organ-test-val.val-NT { color: var(--muted); }
+  .organ-empty-note { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 4px; }
+
+  /* connector line colours */
+  .line-good      { stroke: #22c55e44; }
+  .line-caution   { stroke: #f59e0b44; }
+  .line-attention { stroke: #ef444444; }
+  .line-none      { stroke: rgba(122,122,144,0.15); }
+
+  /* Mobile: vertical stack */
+  @media (max-width: 768px) {
+    .bodymap-diagram { display: none; }
+    .bodymap-mobile  { display: flex; flex-direction: column; gap: 10px; }
+    .bodymap-mobile .organ-card { border-left-width: 3px; }
+    .bodymap-mobile .organ-card-detail { display: block; }
+  }
+  @media (min-width: 769px) {
+    .bodymap-mobile { display: none; }
+  }
+
   @media (max-width: 640px) {
     .charts-grid { grid-template-columns: 1fr; }
     .patient-form { grid-template-columns: 1fr 1fr; }
@@ -412,7 +482,7 @@
     </div>
 
     <!-- Insights section -->
-    <div class="insights-section show" id="insightsSection">
+    <div class="insights-section" id="insightsSection">
 
       <!-- Loading state -->
       <div id="insightsLoading" style="text-align:center;padding:2rem;color:var(--muted)"><span class="spinner"></span> Generating health insights…</div>
@@ -434,6 +504,88 @@
         <div class="insights-block-title">Recommendations</div>
         <div class="reco-grid" id="recoGrid"></div>
       </div>
+
+    </div>
+
+    <!-- Body Map -->
+    <div class="bodymap-wrap" id="bodymapWrap" style="display:none">
+      <div class="bodymap-title">Body Map</div>
+
+      <!-- Desktop diagram -->
+      <div class="bodymap-diagram" id="bodymapDiagram">
+
+        <!-- Connector lines SVG overlay (filled by JS) -->
+        <svg class="bodymap-lines" id="bodymapLines" xmlns="http://www.w3.org/2000/svg"></svg>
+
+        <!-- Left cards -->
+        <div class="bodymap-cards-left" id="bodymapLeft"></div>
+
+        <!-- Central body SVG -->
+        <div class="bodymap-svg-wrap">
+          <svg id="bodySVG" width="220" height="580" viewBox="0 0 220 580" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
+
+            <!-- Body silhouette -->
+            <g fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.5">
+              <!-- Head -->
+              <ellipse cx="110" cy="42" rx="28" ry="34"/>
+              <!-- Neck -->
+              <rect x="99" y="73" width="22" height="18" rx="4"/>
+              <!-- Torso -->
+              <path d="M72,91 C60,95 52,110 50,130 L46,230 C45,245 55,255 70,258 L150,258 C165,255 175,245 174,230 L170,130 C168,110 160,95 148,91 Z"/>
+              <!-- Left arm -->
+              <path d="M72,100 C58,108 46,130 42,160 L36,220 C34,232 40,242 50,240"/>
+              <!-- Right arm -->
+              <path d="M148,100 C162,108 174,130 178,160 L184,220 C186,232 180,242 170,240"/>
+              <!-- Left leg -->
+              <path d="M82,258 L76,340 L72,420 L70,490 C70,504 78,512 88,512 L96,512 C104,512 108,504 108,490 L106,420 L104,340 L100,258"/>
+              <!-- Right leg -->
+              <path d="M120,258 L116,340 L114,420 L112,490 C112,504 116,512 124,512 L132,512 C142,512 150,504 150,490 L148,420 L144,340 L140,258"/>
+            </g>
+
+            <!-- Organ shapes (coloured by JS) -->
+
+            <!-- Brain -->
+            <ellipse id="organ-brain" class="organ-shape status-none" cx="110" cy="35" rx="22" ry="20" stroke-width="1.5"/>
+
+            <!-- Thyroid (neck) -->
+            <path id="organ-thyroid" class="organ-shape status-none" d="M101,80 C101,76 105,74 110,74 C115,74 119,76 119,80 L119,87 C119,90 115,91 110,91 C105,91 101,90 101,87 Z" stroke-width="1.5"/>
+
+            <!-- Heart (left chest) -->
+            <path id="organ-heart" class="organ-shape status-none" d="M80,115 C75,108 66,108 66,118 C66,124 72,130 80,138 C88,130 94,124 94,118 C94,108 85,108 80,115 Z" stroke-width="1.5"/>
+
+            <!-- Lungs -->
+            <path id="organ-lungs" class="organ-shape status-none" d="M58,115 C54,120 52,130 53,145 L55,165 C56,172 61,175 66,172 L74,160 L74,118 C70,113 63,112 58,115 Z M162,115 C166,120 168,130 167,145 L165,165 C164,172 159,175 154,172 L146,160 L146,118 C150,113 157,112 162,115 Z" stroke-width="1.5"/>
+
+            <!-- Liver (right side, upper abdomen) -->
+            <path id="organ-liver" class="organ-shape status-none" d="M118,155 C125,152 145,154 152,162 C156,168 154,180 148,184 C140,188 124,186 118,180 C113,175 113,160 118,155 Z" stroke-width="1.5"/>
+
+            <!-- Pancreas -->
+            <path id="organ-pancreas" class="organ-shape status-none" d="M88,192 C96,189 118,189 126,192 C130,195 128,202 122,204 C114,206 94,206 88,204 C83,202 83,195 88,192 Z" stroke-width="1.5"/>
+
+            <!-- Spleen (left abdomen) -->
+            <ellipse id="organ-spleen" class="organ-shape status-none" cx="72" cy="172" rx="14" ry="18" stroke-width="1.5"/>
+
+            <!-- Left kidney -->
+            <path id="organ-kidney-l" class="organ-shape status-none" d="M68,210 C63,208 58,212 58,220 C58,228 63,234 68,234 C74,234 78,230 78,222 C78,214 74,210 68,210 Z" stroke-width="1.5"/>
+            <!-- Right kidney -->
+            <path id="organ-kidney-r" class="organ-shape status-none" d="M152,210 C147,208 142,212 142,220 C142,228 147,234 152,234 C158,234 162,230 162,222 C162,214 158,210 152,210 Z" stroke-width="1.5"/>
+
+            <!-- Bones (pelvis area) -->
+            <path id="organ-bones" class="organ-shape status-none" d="M78,248 C78,242 90,238 110,238 C130,238 142,242 142,248 L142,258 C142,262 130,264 110,264 C90,264 78,262 78,258 Z" stroke-width="1.5"/>
+
+            <!-- Immune (distributed — show near sternum/chest center) -->
+            <rect id="organ-immune" class="organ-shape status-none" x="100" y="138" width="20" height="22" rx="4" stroke-width="1.5"/>
+
+          </svg>
+        </div>
+
+        <!-- Right cards -->
+        <div class="bodymap-cards-right" id="bodymapRight"></div>
+
+      </div>
+
+      <!-- Mobile vertical stack -->
+      <div class="bodymap-mobile" id="bodymapMobile"></div>
 
     </div>
 
@@ -1858,6 +2010,10 @@ function renderResults(parsed, tests, age, gender) {
   // LOINC grid
   renderLoincGrid(tests);
 
+  // Body map
+  window._lastBodyMapTests = tests;
+  renderBodyMap(tests);
+
   document.getElementById("results").classList.add("show");
 
   // Hide insights button (auto-run instead)
@@ -1868,7 +2024,7 @@ function renderResults(parsed, tests, age, gender) {
   document.getElementById("insightsHero").innerHTML = "";
   document.getElementById("insightsBtn").classList.remove("loading");
   document.getElementById("insightsBtn").disabled = false;
-  // Store flagged tests and auto-run insights
+  // Store tests and auto-run insights
   window._lastInsightsData = { tests, age, gender };
   runInsights();
 }
@@ -2080,7 +2236,231 @@ dropZone.addEventListener("drop", e => {
 });
 
 // ════════════════════════════════════════════════════════
-// INSIGHTS ENGINE
+// BODY MAP
+// ════════════════════════════════════════════════════════
+
+const ORGAN_GROUPS = [
+  {
+    id: "brain",     label: "Brain / CNS",    svgId: "organ-brain",
+    side: "left",
+    tests: ["Sodium","Potassium","Bicarbonate","Chloride"]
+  },
+  {
+    id: "thyroid",   label: "Thyroid",         svgId: "organ-thyroid",
+    side: "right",
+    tests: ["TSH","Free T3","Free T4","Total T3","Total T4"]
+  },
+  {
+    id: "heart",     label: "Heart & Lipids",  svgId: "organ-heart",
+    side: "left",
+    tests: ["Cholesterol Total","LDL Cholesterol","HDL Cholesterol","Triglycerides","Non-HDL Cholesterol","CHOL/HDL Ratio","LDL/HDL Ratio","CRP"]
+  },
+  {
+    id: "lungs",     label: "Lungs / Inflammation", svgId: "organ-lungs",
+    side: "right",
+    tests: ["ESR","CRP"]
+  },
+  {
+    id: "liver",     label: "Liver",           svgId: "organ-liver",
+    side: "right",
+    tests: ["ALT (SGPT)","AST (SGOT)","ALP","Total Bilirubin","Direct Bilirubin","Indirect Bilirubin","Albumin","Globulin","Total Protein","A/G Ratio"]
+  },
+  {
+    id: "pancreas",  label: "Pancreas",         svgId: "organ-pancreas",
+    side: "left",
+    tests: ["Glucose Fasting","Glucose Random","Glucose Post Prandial","HbA1c"]
+  },
+  {
+    id: "spleen",    label: "Blood / Marrow",   svgId: "organ-spleen",
+    side: "left",
+    tests: ["Hemoglobin","Hematocrit (PCV)","RBC Count","WBC Count","Platelet Count","MCV","MCH","MCHC","RDW-CV","Neutrophils","Lymphocytes","Monocytes","Eosinophils","Basophils","ANC","ALC","AEC","AMC","ABC","ESR","Serum Iron","Serum Ferritin","TIBC","UIBC","Transferrin Saturation"]
+  },
+  {
+    id: "kidney",    label: "Kidneys",          svgId: "organ-kidney-r",
+    side: "right",
+    tests: ["Creatinine","Urea","Uric Acid","eGFR","Chloride","Bicarbonate"]
+  },
+  {
+    id: "immune",    label: "Immune System",    svgId: "organ-immune",
+    side: "right",
+    tests: ["WBC Count","Neutrophils","Lymphocytes","Monocytes","Eosinophils","Basophils","ANC","ALC","AEC","AMC","ABC","HIV 1&2 Antibodies","HBsAg"]
+  },
+  {
+    id: "bones",     label: "Bones & Minerals", svgId: "organ-bones",
+    side: "left",
+    tests: ["Calcium (total)","Magnesium","Vitamin D (25-OH)","Vitamin B12","Vitamin B9","ALP"]
+  }
+];
+
+// Also colour the left kidney with the same status as the right
+const EXTRA_ORGAN_SYNC = { "kidney": "organ-kidney-l" };
+
+function organStatus(tests, testData) {
+  // testData: map of canonical name → test object
+  const present = tests.filter(n => testData[n]);
+  if (!present.length) return "none";
+  const flags = present.map(n => testData[n].india_flag);
+  if (flags.some(f => f === "H" || f === "L")) return "attention";
+  if (flags.some(f => f === "?")) return "caution";
+  return "good";
+}
+
+function statusColor(s) {
+  return { good:"#22c55e", caution:"#f59e0b", attention:"#ef4444", none:"rgba(122,122,144,0.3)" }[s];
+}
+
+function renderBodyMap(flaggedTests) {
+  // Build lookup: canonical → test
+  const byName = {};
+  flaggedTests.forEach(t => { if (t.canonical) byName[t.canonical] = t; });
+
+  const leftCol  = document.getElementById("bodymapLeft");
+  const rightCol = document.getElementById("bodymapRight");
+  const mobileEl = document.getElementById("bodymapMobile");
+  const linesSVG = document.getElementById("bodymapLines");
+  leftCol.innerHTML = "";
+  rightCol.innerHTML = "";
+  mobileEl.innerHTML = "";
+  linesSVG.innerHTML = "";
+
+  const leftGroups  = ORGAN_GROUPS.filter(g => g.side === "left");
+  const rightGroups = ORGAN_GROUPS.filter(g => g.side === "right");
+
+  function makeCard(group, status) {
+    const present = group.tests.filter(n => byName[n]);
+    const card = document.createElement("div");
+    card.className = `organ-card status-${status}`;
+    card.id = `card-${group.id}`;
+
+    // Header: dot + name
+    let html = `<div class="organ-card-header">
+      <span class="organ-card-dot"></span>
+      <span class="organ-card-name">${group.label}</span>
+    </div>`;
+
+    // Detail (shown on hover via CSS, always shown on mobile)
+    html += `<div class="organ-card-detail">`;
+    if (present.length === 0) {
+      html += `<div class="organ-empty-note">No data in report</div>`;
+    } else {
+      present.forEach(n => {
+        const t = byName[n];
+        const val = typeof t.std_value === "number" ? `${t.std_value} ${t.std_unit||t.unit||""}` : (t.std_value || "—");
+        const fc = t.india_flag || "NT";
+        html += `<div class="organ-test-row">
+          <span class="organ-test-name">${t.canonical||n}</span>
+          <span class="organ-test-val val-${fc}">${val}</span>
+        </div>`;
+      });
+    }
+    html += `</div>`;
+    card.innerHTML = html;
+    return card;
+  }
+
+  // Render columns
+  leftGroups.forEach(g => {
+    const s = organStatus(g.tests, byName);
+    leftCol.appendChild(makeCard(g, s));
+    mobileEl.appendChild(makeCard(g, s));
+    // Colour organ shape
+    const shape = document.getElementById(g.svgId);
+    if (shape) {
+      shape.className.baseVal = `organ-shape status-${s}`;
+    }
+    if (EXTRA_ORGAN_SYNC[g.id]) {
+      const extra = document.getElementById(EXTRA_ORGAN_SYNC[g.id]);
+      if (extra) extra.className.baseVal = `organ-shape status-${s}`;
+    }
+  });
+
+  rightGroups.forEach(g => {
+    const s = organStatus(g.tests, byName);
+    rightCol.appendChild(makeCard(g, s));
+    mobileEl.appendChild(makeCard(g, s));
+    const shape = document.getElementById(g.svgId);
+    if (shape) shape.className.baseVal = `organ-shape status-${s}`;
+    if (EXTRA_ORGAN_SYNC[g.id]) {
+      const extra = document.getElementById(EXTRA_ORGAN_SYNC[g.id]);
+      if (extra) extra.className.baseVal = `organ-shape status-${s}`;
+    }
+  });
+
+  // Draw connector lines after layout is painted
+  requestAnimationFrame(() => drawConnectors(leftGroups, rightGroups, byName));
+
+  document.getElementById("bodymapWrap").style.display = "block";
+}
+
+function drawConnectors(leftGroups, rightGroups, byName) {
+  const diagram  = document.getElementById("bodymapDiagram");
+  const linesSVG = document.getElementById("bodymapLines");
+  const dRect    = diagram.getBoundingClientRect();
+  linesSVG.setAttribute("viewBox", `0 0 ${dRect.width} ${dRect.height}`);
+  linesSVG.style.width  = dRect.width  + "px";
+  linesSVG.style.height = dRect.height + "px";
+
+  function drawLine(group, side) {
+    const card = document.getElementById(`card-${group.id}`);
+    const shape = document.getElementById(group.svgId);
+    if (!card || !shape) return;
+
+    const status = organStatus(group.tests, byName);
+    const color  = statusColor(status);
+
+    const cRect = card.getBoundingClientRect();
+    const sRect = shape.getBoundingClientRect();
+
+    // Card anchor: right edge (for left cards) or left edge (for right cards)
+    const cx = (side === "left")
+      ? cRect.right  - dRect.left
+      : cRect.left   - dRect.left;
+    const cy = cRect.top + cRect.height / 2 - dRect.top;
+
+    // Organ anchor: center
+    const ox = sRect.left + sRect.width  / 2 - dRect.left;
+    const oy = sRect.top  + sRect.height / 2 - dRect.top;
+
+    // Control points for a gentle bezier
+    const mx = (cx + ox) / 2;
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+    path.setAttribute("d", `M${cx},${cy} C${mx},${cy} ${mx},${oy} ${ox},${oy}`);
+    path.setAttribute("fill","none");
+    path.setAttribute("stroke", color);
+    path.setAttribute("stroke-width","1.5");
+    path.setAttribute("stroke-dasharray","4 3");
+    linesSVG.appendChild(path);
+
+    // Dot at organ end
+    const dot = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    dot.setAttribute("cx", ox);
+    dot.setAttribute("cy", oy);
+    dot.setAttribute("r","3");
+    dot.setAttribute("fill", color);
+    linesSVG.appendChild(dot);
+  }
+
+  leftGroups.forEach(g  => drawLine(g, "left"));
+  rightGroups.forEach(g => drawLine(g, "right"));
+}
+
+// Redraw connectors on window resize (debounced)
+let _resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    if (window._lastBodyMapTests) {
+      document.getElementById("bodymapLines").innerHTML = "";
+      const lg = ORGAN_GROUPS.filter(g => g.side === "left");
+      const rg = ORGAN_GROUPS.filter(g => g.side === "right");
+      const byName = {};
+      window._lastBodyMapTests.forEach(t => { if (t.canonical) byName[t.canonical] = t; });
+      drawConnectors(lg, rg, byName);
+    }
+  }, 150);
+});
+
 // ════════════════════════════════════════════════════════
 
 function buildInsightsPrompt(tests, age, gender) {
