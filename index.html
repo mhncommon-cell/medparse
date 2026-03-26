@@ -412,7 +412,10 @@
     </div>
 
     <!-- Insights section -->
-    <div class="insights-section" id="insightsSection">
+    <div class="insights-section show" id="insightsSection">
+
+      <!-- Loading state -->
+      <div id="insightsLoading" style="text-align:center;padding:2rem;color:var(--muted)"><span class="spinner"></span> Generating health insights…</div>
 
       <!-- Hero: score + summary -->
       <div class="insights-hero" id="insightsHero"></div>
@@ -1856,13 +1859,17 @@ function renderResults(parsed, tests, age, gender) {
 
   document.getElementById("results").classList.add("show");
 
-  // Show insights button; clear any previous insights
-  document.getElementById("insightsBtnWrap").style.display = "block";
-  document.getElementById("insightsSection").classList.remove("show");
+  // Hide insights button (auto-run instead)
+  document.getElementById("insightsBtnWrap").style.display = "none";
+  document.getElementById("insightsSection").classList.add("show");
+  document.getElementById("insightsLoading").style.display = "block";
+  document.getElementById("insightsLoading").innerHTML = '<span class="spinner"></span> Generating health insights…';
+  document.getElementById("insightsHero").innerHTML = "";
   document.getElementById("insightsBtn").classList.remove("loading");
   document.getElementById("insightsBtn").disabled = false;
-  // Store flagged tests for later insights call
+  // Store flagged tests and auto-run insights
   window._lastInsightsData = { tests, age, gender };
+  runInsights();
 }
 
 // ════════════════════════════════════════════════════════
@@ -2154,13 +2161,14 @@ async function runInsights() {
     let raw = apiData.content.map(c => c.text || "").join("");
     raw = raw.replace(/```json\n?/g,"").replace(/```\n?/g,"").trim();
     const insights = JSON.parse(raw);
+    document.getElementById("insightsLoading").style.display = "none";
     renderInsights(insights);
     document.getElementById("insightsBtnWrap").style.display = "none";
   } catch(err) {
     console.error(err);
     btn.classList.remove("loading");
     btn.disabled = false;
-    alert("Insights error: " + err.message);
+    document.getElementById("insightsLoading").innerHTML = `<span style="color:#ef4444">⚠ Insights failed: ${err.message}</span>`;
   }
 }
 
