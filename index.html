@@ -2639,8 +2639,9 @@ async function runInsights() {
   const data = window._lastInsightsData;
   if (!data) return;
 
-  document.getElementById("insightsLoading").style.display = "block";
-  document.getElementById("insightsLoading").innerHTML = '<span class="spinner"></span> Generating health insights…';
+  const loadingEl = document.getElementById("insightsLoading");
+  loadingEl.style.display = "block";
+  loadingEl.innerHTML = '<span class="spinner"></span> Generating health insights…';
 
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -2659,18 +2660,34 @@ async function runInsights() {
       })
     });
     if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(`API error ${resp.status}: ${err.error?.message || JSON.stringify(err)}`);
+      const errBody = await resp.json();
+      const errMsg = errBody.error?.message || JSON.stringify(errBody);
+      if (resp.status === 429) {
+        // Rate limited — countdown and auto-retry
+        let secs = 60;
+        loadingEl.innerHTML = `<span style="color:var(--amber)">⏳ Rate limit hit. Retrying in <strong id="insightsCountdown">${secs}</strong>s…</span>`;
+        await new Promise(resolve => {
+          const timer = setInterval(() => {
+            secs--;
+            const cd = document.getElementById("insightsCountdown");
+            if (cd) cd.textContent = secs;
+            if (secs <= 0) { clearInterval(timer); resolve(); }
+          }, 1000);
+        });
+        loadingEl.innerHTML = '<span class="spinner"></span> Retrying health insights…';
+        return runInsights();
+      }
+      throw new Error(`API error ${resp.status}: ${errMsg}`);
     }
     const apiData = await resp.json();
     let raw = apiData.content.map(c => c.text || "").join("");
     raw = raw.replace(/```json\n?/g,"").replace(/```\n?/g,"").trim();
     const insights = JSON.parse(raw);
-    document.getElementById("insightsLoading").style.display = "none";
+    loadingEl.style.display = "none";
     renderInsights(insights);
   } catch(err) {
     console.error(err);
-    document.getElementById("insightsLoading").innerHTML = `<span style="color:#ef4444">⚠ Insights failed: ${err.message}</span>`;
+    loadingEl.innerHTML = `<span style="color:#ef4444">⚠ Insights failed: ${err.message}</span>`;
   }
 }
 
