@@ -484,8 +484,9 @@
     <!-- Insights section -->
     <div class="insights-section" id="insightsSection">
 
-      <!-- Loading state -->
-      <div id="insightsLoading" style="text-align:center;padding:2rem;color:var(--muted)"><span class="spinner"></span> Generating health insights…</div>
+      <div id="insightsLoading" style="text-align:center;padding:2rem;color:var(--muted);display:none">
+        <span class="spinner"></span> Generating health insights…
+      </div>
 
       <!-- Hero: score + summary -->
       <div class="insights-hero" id="insightsHero"></div>
@@ -1625,54 +1626,190 @@ function resolveLOINC(rawName) {
 // ════════════════════════════════════════════════════════
 // UNIT CONVERSION ENGINE
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// UNIT CONVERSION ENGINE  (fully expanded — all Indian lab variants)
+// ════════════════════════════════════════════════════════
+
+// Helper: build a full entry for count-based parameters that may arrive
+// as raw cells/cmm (÷1000) OR as ×10³ already (factor 1, just rename).
+function _countEntry(toUnit) {
+  const d = { factor: 0.001, toUnit };          // raw /cmm → ÷1000
+  const s = { factor: 1,     toUnit };          // already ×10³, just rename
+  return {
+    // raw per-cmm / per-mm³ variants (÷1000)
+    "/cumm":          d, "cells/cumm":    d, "cells/cmm":     d,
+    "/cmm":           d, "/mm3":          d, "/mm³":          d,
+    "cells/mm3":      d, "cells/mm³":     d, "cells/ul":      d,
+    "cells/µl":       d, "/µl":           d, "/ul":           d,
+    // ×10³ already (factor 1, just normalise label)
+    "x10^3/ul":       s, "x10^3/µl":     s, "10^3/ul":       s,
+    "10^3/µl":        s, "×10³/µl":      s, "×10^3/µl":      s,
+    "10³/µl":         s, "thousands/µl":  s, "thou/µl":       s,
+    "k/µl":           s, "k/ul":          s, "k/cumm":        s,
+    // 10^9/L = 10³/mm³ — same magnitude
+    "10^9/l":         s, "×10⁹/l":       s,
+  };
+}
+
 const UNIT_CONVERSIONS = {
-  // Glucose: mmol/L → mg/dL
-  "glucose fasting": { "mmol/l": { factor: 18.016, toUnit: "mg/dL" } },
+  // ── Glucose (mmol/L → mg/dL) ──────────────────────────
+  "glucose fasting":      { "mmol/l": { factor: 18.016, toUnit: "mg/dL" } },
+  "glucose random":       { "mmol/l": { factor: 18.016, toUnit: "mg/dL" } },
+  "glucose post prandial":{ "mmol/l": { factor: 18.016, toUnit: "mg/dL" } },
+
+  // ── HbA1c (mmol/mol IFCC → %) ─────────────────────────
   "hba1c": { "mmol/mol": { factor: 0.0915, offset: 2.15, toUnit: "%" } },
-  // Cholesterol: mmol/L → mg/dL  
-  "cholesterol total": { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
-  "hdl cholesterol": { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
-  "ldl cholesterol": { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
-  "cholesterol vldl": { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
-  // Triglycerides
-  "triglycerides": { "mmol/l": { factor: 88.57, toUnit: "mg/dL" } },
-  // Creatinine
-  "creatinine": { "µmol/l": { factor: 0.01131, toUnit: "mg/dL" }, "umol/l": { factor: 0.01131, toUnit: "mg/dL" } },
-  // Hemoglobin g/L → g/dL
+
+  // ── Cholesterol / Lipids (mmol/L → mg/dL) ─────────────
+  "cholesterol total":    { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
+  "hdl cholesterol":      { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
+  "ldl cholesterol":      { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
+  "cholesterol vldl":     { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
+  "non-hdl cholesterol":  { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
+  "triglycerides":        { "mmol/l": { factor: 88.57,  toUnit: "mg/dL" } },
+
+  // ── Creatinine (µmol/L → mg/dL) ───────────────────────
+  "creatinine": {
+    "µmol/l": { factor: 0.01131, toUnit: "mg/dL" },
+    "umol/l":  { factor: 0.01131, toUnit: "mg/dL" },
+    "μmol/l":  { factor: 0.01131, toUnit: "mg/dL" },
+  },
+
+  // ── Urea (mmol/L → mg/dL) ─────────────────────────────
+  "urea": { "mmol/l": { factor: 6.006, toUnit: "mg/dL" } },
+
+  // ── Uric Acid (µmol/L → mg/dL) ────────────────────────
+  "uric acid": {
+    "µmol/l": { factor: 0.01681, toUnit: "mg/dL" },
+    "umol/l":  { factor: 0.01681, toUnit: "mg/dL" },
+  },
+
+  // ── Hemoglobin (g/L → g/dL) ───────────────────────────
   "hemoglobin": { "g/l": { factor: 0.1, toUnit: "g/dL" } },
-  // Platelet count: /µL or /cumm → 10^9/L (Lakhs/µL × 100 = 10^9/L; but 1 lakh/µL = 100 × 10^9/L)
-  "platelet count": { "lakhs/cumm": { factor: 100, toUnit: "10^9/L" }, "lakhs/µl": { factor: 100, toUnit: "10^9/L" }, "/cumm": { factor: 0.001, toUnit: "10^9/L" }, "x10^3/µl": { factor: 1, toUnit: "10^9/L" } },
-  // WBC /cumm → 10^9/L
-  "wbc count": { "/cumm": { factor: 0.001, toUnit: "10^9/L" }, "cells/cumm": { factor: 0.001, toUnit: "10^9/L" } },
-  // Vitamin D: nmol/L → ng/mL
+
+  // ── WBC Count (raw /cmm OR ×10³ variants → 10³/mm³) ───
+  "wbc count": _countEntry("10³/mm³"),
+
+  // ── Platelet Count ─────────────────────────────────────
+  // raw /cmm (÷1000) — same as _countEntry
+  // PLUS lakh variants: 1 lakh/cmm = 100 × 10³/mm³
+  "platelet count": Object.assign(_countEntry("10³/mm³"), {
+    "lakhs/cumm":  { factor: 100, toUnit: "10³/mm³" },
+    "lakh/cumm":   { factor: 100, toUnit: "10³/mm³" },
+    "lakhs/µl":    { factor: 100, toUnit: "10³/mm³" },
+    "lakh/µl":     { factor: 100, toUnit: "10³/mm³" },
+    "lacs/cumm":   { factor: 100, toUnit: "10³/mm³" },
+    "lac/cumm":    { factor: 100, toUnit: "10³/mm³" },
+  }),
+
+  // ── RBC Count (mill/cmm = mill/mm³, already correct; 10⁶/µL same) ─
+  "rbc count": {
+    // already in correct unit — just normalise label variants
+    "million/cumm":  { factor: 1, toUnit: "mill/mm³" },
+    "mill/cumm":     { factor: 1, toUnit: "mill/mm³" },
+    "m/cumm":        { factor: 1, toUnit: "mill/mm³" },
+    "10^6/µl":       { factor: 1, toUnit: "mill/mm³" },
+    "×10⁶/µl":      { factor: 1, toUnit: "mill/mm³" },
+    "x10^6/ul":      { factor: 1, toUnit: "mill/mm³" },
+    "10^6/ul":       { factor: 1, toUnit: "mill/mm³" },
+    "10^12/l":       { factor: 1, toUnit: "mill/mm³" },
+  },
+
+  // ── Absolute counts (all same pattern as WBC) ─────────
+  "anc": _countEntry("10³/mm³"),
+  "alc": _countEntry("10³/mm³"),
+  "aec": _countEntry("10³/mm³"),
+  "amc": _countEntry("10³/mm³"),
+  "abc": _countEntry("10³/mm³"),
+
+  // ── Vitamin D (nmol/L → ng/mL) ────────────────────────
   "vitamin d (25-oh)": { "nmol/l": { factor: 0.401, toUnit: "ng/mL" } },
-  // Glucose conversions
-  "glucose random": { "mmol/l": { factor: 18.016, toUnit: "mg/dL" } },
-  "glucose post prandial": { "mmol/l": { factor: 18.016, toUnit: "mg/dL" } },
-  // Cholesterol extras
-  "non-hdl cholesterol": { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
-  // Electrolytes (mEq/L = mmol/L, no conversion needed; just normalise label)
-  // Ferritin: µg/L = ng/mL, factor 1
-  "serum ferritin": { "µg/l": { factor: 1, toUnit: "ng/mL" }, "ug/l": { factor: 1, toUnit: "ng/mL" } },
-  // Serum Iron: µmol/L → µg/dL
-  "serum iron": { "µmol/l": { factor: 5.585, toUnit: "µg/dL" }, "umol/l": { factor: 5.585, toUnit: "µg/dL" } },
-  // Absolute counts: cells/µL (/cumm) → 10³/mm³ (same unit different label)
-  "anc": { "/cumm": { factor: 0.001, toUnit: "10³/mm³" }, "cells/µl": { factor: 0.001, toUnit: "10³/mm³" } },
-  "alc": { "/cumm": { factor: 0.001, toUnit: "10³/mm³" }, "cells/µl": { factor: 0.001, toUnit: "10³/mm³" } },
-  "aec": { "/cumm": { factor: 0.001, toUnit: "10³/mm³" }, "cells/µl": { factor: 0.001, toUnit: "10³/mm³" } },
-  "amc": { "/cumm": { factor: 0.001, toUnit: "10³/mm³" }, "cells/µl": { factor: 0.001, toUnit: "10³/mm³" } },
-  "abc": { "/cumm": { factor: 0.001, toUnit: "10³/mm³" }, "cells/µl": { factor: 0.001, toUnit: "10³/mm³" } },
+
+  // ── Vitamin B12 (pmol/L → pg/mL) ──────────────────────
+  "vitamin b12": { "pmol/l": { factor: 1.355, toUnit: "pg/mL" } },
+
+  // ── Serum Iron (µmol/L → µg/dL) ───────────────────────
+  "serum iron": {
+    "µmol/l": { factor: 5.585, toUnit: "µg/dL" },
+    "umol/l":  { factor: 5.585, toUnit: "µg/dL" },
+  },
+
+  // ── Ferritin (µg/L = ng/mL, factor 1) ─────────────────
+  "serum ferritin": {
+    "µg/l": { factor: 1, toUnit: "ng/mL" },
+    "ug/l":  { factor: 1, toUnit: "ng/mL" },
+    "ng/ml": { factor: 1, toUnit: "ng/mL" },  // already correct, normalise case
+  },
+
+  // ── TIBC / UIBC (µmol/L → µg/dL) ─────────────────────
+  "tibc": {
+    "µmol/l": { factor: 5.585, toUnit: "µg/dL" },
+    "umol/l":  { factor: 5.585, toUnit: "µg/dL" },
+  },
+  "uibc": {
+    "µmol/l": { factor: 5.585, toUnit: "µg/dL" },
+    "umol/l":  { factor: 5.585, toUnit: "µg/dL" },
+  },
+
+  // ── Calcium (mmol/L → mg/dL) ──────────────────────────
+  "calcium (total)": { "mmol/l": { factor: 4.008, toUnit: "mg/dL" } },
+
+  // ── Magnesium (mmol/L → mg/dL) ────────────────────────
+  "magnesium": { "mmol/l": { factor: 2.431, toUnit: "mg/dL" } },
+
+  // ── CRP (mg/dL → mg/L) ────────────────────────────────
+  // Some labs report in mg/dL; our ref is mg/L → ×10
+  "crp": { "mg/dl": { factor: 10, toUnit: "mg/L" } },
+
+  // ── TSH (mIU/L = µIU/mL, factor 1) ───────────────────
+  "tsh": { "miu/l": { factor: 1, toUnit: "µIU/mL" } },
 };
 
-function standardizeUnit(canonicalName, value, rawUnit) {
-  const key = canonicalName.toLowerCase();
-  const unitKey = (rawUnit || "").toLowerCase().trim();
+// ── Magnitude-based auto-scale fallback ───────────────────────────────────
+// If no unit match fires AND the value is clearly in the wrong magnitude
+// vs the reference range, auto-scale it.  This catches "3300 WBC" where
+// the unit string from the report is something we didn't anticipate.
+const MAGNITUDE_RULES = [
+  // { canonical (lowercase), threshold_ratio, factor, toUnit }
+  // If value > ref_max × threshold_ratio → divide by factor
+  { key: "wbc count",      ratio: 50,  factor: 1000, toUnit: "10³/mm³" },
+  { key: "platelet count", ratio: 50,  factor: 1000, toUnit: "10³/mm³" },
+  { key: "anc",            ratio: 50,  factor: 1000, toUnit: "10³/mm³" },
+  { key: "alc",            ratio: 50,  factor: 1000, toUnit: "10³/mm³" },
+  { key: "aec",            ratio: 50,  factor: 1000, toUnit: "10³/mm³" },
+  { key: "amc",            ratio: 50,  factor: 1000, toUnit: "10³/mm³" },
+  { key: "abc",            ratio: 50,  factor: 1000, toUnit: "10³/mm³" },
+];
+
+function standardizeUnit(canonicalName, value, rawUnit, refRange) {
+  const key     = (canonicalName || "").toLowerCase().trim();
+  // Aggressively normalise unit string:
+  //   strip unicode superscripts, normalise µ variants, lowercase, collapse spaces
+  const unitKey = (rawUnit || "")
+    .toLowerCase()
+    .replace(/μ/g, "µ")           // U+03BC → U+00B5
+    .replace(/\u00b3/g, "3")      // superscript ³ → 3
+    .replace(/\u00b2/g, "2")      // superscript ² → 2
+    .replace(/\u2019/g, "")       // right-single-quote
+    .replace(/\s+/g, "")          // strip all spaces
+    .trim();
+
   const convTable = UNIT_CONVERSIONS[key];
   if (convTable && convTable[unitKey]) {
     const conv = convTable[unitKey];
     const converted = value * conv.factor + (conv.offset || 0);
-    return { value: Math.round(converted * 1000) / 1000, unit: conv.toUnit, converted: true, originalUnit: rawUnit };
+    return { value: Math.round(converted * 10000) / 10000, unit: conv.toUnit, converted: true, originalUnit: rawUnit };
   }
+
+  // Magnitude fallback: use ref range to detect scale mismatch
+  if (typeof value === "number" && refRange) {
+    const rule = MAGNITUDE_RULES.find(r => r.key === key);
+    if (rule && refRange.max && value > refRange.max * rule.ratio) {
+      const converted = Math.round((value / rule.factor) * 10000) / 10000;
+      return { value: converted, unit: rule.toUnit, converted: true, originalUnit: rawUnit, autoScaled: true };
+    }
+  }
+
   return { value, unit: rawUnit, converted: false };
 }
 
@@ -1725,7 +1862,7 @@ IMPORTANT RULES:
 6. CRITICAL — NO DUPLICATION: Each test must appear EXACTLY ONCE in the "tests" array. Never repeat a test under a different name variant. If a panel heading and a test line share the same name, include it only once as a test entry.
 7. CRITICAL — EXACT raw_name: Copy the test name EXACTLY as it appears in the report. Do not paraphrase, abbreviate, or rename. E.g. if the report says "HBsAg" do NOT rename it to "Hemoglobin" or "Hb".
 8. CRITICAL — DO NOT INVENT: Only extract tests that are visibly present in the report. Do not add tests based on what you expect a panel to contain.
-9. CRITICAL — COMPACT JSON: Return ONLY minified JSON with zero whitespace/indentation. No newlines between fields. This is mandatory to fit large reports in the output limit.`;
+9. CRITICAL — COMPACT JSON: Return ONLY minified JSON with zero whitespace/indentation. No spaces after colons or commas. This maximizes data within the output token limit.`;
 }
 
 // ════════════════════════════════════════════════════════
@@ -1871,11 +2008,14 @@ async function runAnalysis() {
     setStep("step-units", "active", "Standardizing units…");
     const unitStdTests = enrichedTests.map(t => {
       if (typeof t.result !== "number") return { ...t, std_value: t.result, std_unit: t.unit, unit_converted: false };
-      const std = standardizeUnit(t.canonical, t.result, t.unit);
-      return { ...t, std_value: std.value, std_unit: std.unit, unit_converted: std.converted, original_unit: std.originalUnit };
+      // Pre-fetch ref range so magnitude fallback can use it
+      const preRef = t.refKey ? getRefRange(patGender, patAge, t.refKey) : null;
+      const std = standardizeUnit(t.canonical, t.result, t.unit, preRef);
+      return { ...t, std_value: std.value, std_unit: std.unit, unit_converted: std.converted, auto_scaled: std.autoScaled || false, original_unit: std.originalUnit };
     });
     const converted = unitStdTests.filter(t => t.unit_converted).length;
-    setStep("step-units", "done", `Unit-standardized ${converted} test values`);
+    const autoScaled = unitStdTests.filter(t => t.auto_scaled).length;
+    setStep("step-units", "done", `Standardized ${converted} unit conversions${autoScaled ? `, auto-scaled ${autoScaled} by magnitude` : ""}`);
 
     // ── STEP 5: Reference Range Lookup ──
     setStep("step-ref", "active", "Applying India age/gender-specific reference ranges…");
@@ -1980,7 +2120,7 @@ function renderResults(parsed, tests, age, gender) {
       <td><span class="loinc-code">${t.loinc || "—"}</span></td>
       <td>
         <span class="value-cell ${isNumeric ? (flag === "N" ? "normal" : flag === "H" ? "high" : flag === "L" ? "low" : "") : ""}">${isNumeric ? t.std_value : (t.std_value || "—")}</span>
-        ${t.unit_converted ? `<span class="conv-badge">conv</span>` : ""}
+        ${t.unit_converted ? `<span class="conv-badge">${t.auto_scaled ? "auto-scaled" : "conv"}</span>` : ""}
         ${t.previous_value != null ? `<div class="convert-note">prev: ${t.previous_value} (${t.previous_date || "prior"})</div>` : ""}
       </td>
       <td><span class="unit-cell">${isNumeric ? (t.std_unit || "—") : "—"}</span></td>
@@ -2016,15 +2156,12 @@ function renderResults(parsed, tests, age, gender) {
 
   document.getElementById("results").classList.add("show");
 
-  // Hide insights button (auto-run instead)
+  // Auto-run insights immediately
   document.getElementById("insightsBtnWrap").style.display = "none";
   document.getElementById("insightsSection").classList.add("show");
   document.getElementById("insightsLoading").style.display = "block";
   document.getElementById("insightsLoading").innerHTML = '<span class="spinner"></span> Generating health insights…';
   document.getElementById("insightsHero").innerHTML = "";
-  document.getElementById("insightsBtn").classList.remove("loading");
-  document.getElementById("insightsBtn").disabled = false;
-  // Store tests and auto-run insights
   window._lastInsightsData = { tests, age, gender };
   runInsights();
 }
@@ -2510,13 +2647,15 @@ Rules:
 
 async function runInsights() {
   const apiKey = document.getElementById("apiKey").value.trim();
-  if (!apiKey) { alert("Please enter your API key first."); return; }
+  if (!apiKey) {
+    document.getElementById("insightsLoading").innerHTML = `<span style="color:#ef4444">⚠ Please enter your API key first.</span>`;
+    return;
+  }
   const data = window._lastInsightsData;
   if (!data) return;
 
-  const btn = document.getElementById("insightsBtn");
-  btn.classList.add("loading");
-  btn.disabled = true;
+  document.getElementById("insightsLoading").style.display = "block";
+  document.getElementById("insightsLoading").innerHTML = '<span class="spinner"></span> Generating health insights…';
 
   try {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
@@ -2529,7 +2668,7 @@ async function runInsights() {
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-5",
-        max_tokens: 1500,
+        max_tokens: 2048,
         system: "You are a clinical lab interpreter. Return ONLY valid JSON, no markdown, no prose.",
         messages: [{ role: "user", content: buildInsightsPrompt(data.tests, data.age, data.gender) }]
       })
@@ -2544,11 +2683,8 @@ async function runInsights() {
     const insights = JSON.parse(raw);
     document.getElementById("insightsLoading").style.display = "none";
     renderInsights(insights);
-    document.getElementById("insightsBtnWrap").style.display = "none";
   } catch(err) {
     console.error(err);
-    btn.classList.remove("loading");
-    btn.disabled = false;
     document.getElementById("insightsLoading").innerHTML = `<span style="color:#ef4444">⚠ Insights failed: ${err.message}</span>`;
   }
 }
