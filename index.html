@@ -198,10 +198,82 @@
   .gauge-bar { height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; margin-top: 8px; }
   .gauge-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
 
+  /* ── Insights ─────────────────────────────────────── */
+  .insights-btn-wrap { margin: 8px 0 28px; }
+  .insights-btn { display: flex; align-items: center; gap: 10px; padding: 13px 24px; background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(167,139,250,0.1)); border: 1px solid rgba(108,99,255,0.35); border-radius: 10px; color: var(--accent2); font-family: var(--font-head); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; justify-content: center; letter-spacing: 0.02em; }
+  .insights-btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(108,99,255,0.25), rgba(167,139,250,0.18)); border-color: var(--accent2); transform: translateY(-1px); }
+  .insights-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .insights-btn .btn-spinner { display: none; }
+  .insights-btn.loading .btn-text { display: none; }
+  .insights-btn.loading .btn-spinner { display: inline-flex; align-items: center; gap: 8px; }
+
+  .insights-section { display: none; margin-bottom: 32px; }
+  .insights-section.show { display: block; }
+
+  /* Score hero */
+  .insights-hero { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 24px 28px; margin-bottom: 16px; display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
+  .score-ring-wrap { position: relative; flex-shrink: 0; }
+  .score-ring-wrap svg { transform: rotate(-90deg); }
+  .score-ring-bg { fill: none; stroke: var(--surface3); stroke-width: 8; }
+  .score-ring-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+  .score-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .score-num { font-family: var(--font-head); font-size: 28px; font-weight: 800; line-height: 1; }
+  .score-denom { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+  .hero-text { flex: 1; min-width: 200px; }
+  .hero-label { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  .hero-status { font-family: var(--font-head); font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .hero-summary { font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+  /* Panel strip */
+  .panel-strip { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .panel-chip { display: flex; align-items: center; gap: 7px; padding: 7px 12px; border-radius: 8px; border: 1px solid; font-family: var(--font-mono); font-size: 11px; font-weight: 500; }
+  .panel-chip.good { background: rgba(34,197,94,0.07); border-color: rgba(34,197,94,0.25); color: var(--green); }
+  .panel-chip.caution { background: rgba(245,158,11,0.07); border-color: rgba(245,158,11,0.25); color: var(--amber); }
+  .panel-chip.attention { background: rgba(239,68,68,0.07); border-color: rgba(239,68,68,0.25); color: var(--red); }
+  .panel-chip.unknown { background: rgba(122,122,144,0.07); border-color: rgba(122,122,144,0.2); color: var(--muted); }
+  .panel-chip-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+  /* Risk flags */
+  .insights-block { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px 24px; margin-bottom: 14px; }
+  .insights-block-title { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px; }
+  .risk-flags { display: flex; flex-direction: column; gap: 10px; }
+  .risk-flag { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 9px; border: 1px solid; }
+  .risk-flag.warning { background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.2); }
+  .risk-flag.danger  { background: rgba(239,68,68,0.06);  border-color: rgba(239,68,68,0.2); }
+  .risk-flag.info    { background: rgba(6,182,212,0.06);   border-color: rgba(6,182,212,0.2); }
+  .risk-flag-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .risk-flag-body { flex: 1; }
+  .risk-flag-label { font-family: var(--font-head); font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .risk-flag.warning .risk-flag-label { color: var(--amber); }
+  .risk-flag.danger  .risk-flag-label { color: var(--red); }
+  .risk-flag.info    .risk-flag-label { color: var(--cyan); }
+  .risk-flag-detail { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .risk-flag-basis { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+  .risk-basis-chip { font-family: var(--font-mono); font-size: 10px; padding: 1px 6px; border-radius: 3px; background: var(--surface3); color: var(--muted); border: 1px solid var(--border); }
+
+  /* Recommendations */
+  .reco-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+  .reco-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .reco-cat { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .reco-cat-icon { font-size: 13px; }
+  .reco-items { display: flex; flex-direction: column; gap: 7px; }
+  .reco-item { font-size: 12px; color: var(--text); line-height: 1.55; display: flex; gap: 8px; }
+  .reco-item::before { content: '·'; color: var(--accent2); font-size: 16px; line-height: 1.1; flex-shrink: 0; }
+
+  /* Per-test explanation row */
+  .test-info-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 5px; border-radius: 4px; transition: color 0.15s; line-height: 1; }
+  .test-info-btn:hover { color: var(--accent2); }
+  .test-explain-row td { padding: 0 16px 12px; background: rgba(108,99,255,0.04); border-bottom: 1px solid var(--border); }
+  .test-explain-inner { border-left: 2px solid var(--accent); padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .test-explain-inner strong { color: var(--text); font-weight: 500; }
+  .test-explain-loading { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+
   @media (max-width: 640px) {
     .charts-grid { grid-template-columns: 1fr; }
     .patient-form { grid-template-columns: 1fr 1fr; }
     header { flex-direction: column; }
+    .insights-hero { flex-direction: column; align-items: flex-start; }
+    .reco-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -330,6 +402,37 @@
     </div>
 
     <div class="summary-cards" id="summaryCards"></div>
+
+    <!-- Insights button (shown after analysis, hidden after insights load) -->
+    <div class="insights-btn-wrap" id="insightsBtnWrap" style="display:none">
+      <button class="insights-btn" id="insightsBtn" onclick="runInsights()">
+        <span class="btn-text">✦ Generate Health Insights</span>
+        <span class="btn-spinner"><span class="spinner"></span>Analyzing patterns…</span>
+      </button>
+    </div>
+
+    <!-- Insights section -->
+    <div class="insights-section" id="insightsSection">
+
+      <!-- Hero: score + summary -->
+      <div class="insights-hero" id="insightsHero"></div>
+
+      <!-- Panel strip -->
+      <div class="panel-strip" id="panelStrip"></div>
+
+      <!-- Risk flags -->
+      <div class="insights-block" id="riskFlagsBlock" style="display:none">
+        <div class="insights-block-title">Risk Flags & Patterns</div>
+        <div class="risk-flags" id="riskFlags"></div>
+      </div>
+
+      <!-- Recommendations -->
+      <div class="insights-block" id="recoBlock" style="display:none">
+        <div class="insights-block-title">Recommendations</div>
+        <div class="reco-grid" id="recoGrid"></div>
+      </div>
+
+    </div>
 
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('tests', this)">Tests</button>
@@ -1572,11 +1675,10 @@ async function runAnalysis() {
     let parsed;
     try {
       const clean = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      try {
-        parsed = JSON.parse(clean);
-      } catch(e) {
+      try { parsed = JSON.parse(clean); }
+      catch(e) {
         const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("No JSON object found in response.\n\nRaw response (first 500 chars):\n" + rawText.substring(0, 500));
+        if (!jsonMatch) throw new Error("No JSON object found in response.\n" + rawText.substring(0, 500));
         parsed = JSON.parse(jsonMatch[0]);
       }
     } catch(e) {
@@ -1697,20 +1799,27 @@ function renderResults(parsed, tests, age, gender) {
   // Test table
   const tbody = document.getElementById("testTableBody");
   tbody.innerHTML = "";
-  tests.filter(t => t.result !== "TEST NOT TAKEN").forEach(t => {
+  tests.filter(t => t.result !== "TEST NOT TAKEN" && t.std_value !== "TEST NOT TAKEN").forEach((t, idx) => {
     const isNumeric = typeof t.std_value === "number";
     const flag = t.india_flag || "NT";
     const flagLabel = { N: "Normal", H: "High", L: "Low", NT: "N/A", "?": "No Ref" }[flag] || flag;
     const refStr = t.ref_range ? `${t.ref_range.min}–${t.ref_range.max === 999 ? "∞" : t.ref_range.max} ${t.ref_range.unit}` : "—";
     const pct = t.pct_of_range;
     const gaugeColor = { N: "#22c55e", H: "#ef4444", L: "#f59e0b" }[flag] || "#7a7a90";
+    const rowId = `explain-row-${idx}`;
+    const safeName = (t.canonical || t.raw_name).replace(/\\/g,"\\\\").replace(/'/g,"\\'");
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>
-        <div class="test-name">${t.canonical || t.raw_name}</div>
-        ${t.raw_name !== t.canonical ? `<div class="test-alias">${t.raw_name}</div>` : ""}
-        ${t.method ? `<div class="test-alias" style="color:var(--muted)">Method: ${t.method}</div>` : ""}
+        <div style="display:flex;align-items:center;gap:6px">
+          <div>
+            <div class="test-name">${t.canonical || t.raw_name}</div>
+            ${t.raw_name !== t.canonical ? `<div class="test-alias">${t.raw_name}</div>` : ""}
+            ${t.method ? `<div class="test-alias" style="color:var(--muted)">Method: ${t.method}</div>` : ""}
+          </div>
+          <button class="test-info-btn" title="Explain this test" onclick="toggleExplain(event,'${rowId}','${safeName}','${t.std_value}','${t.std_unit||t.unit||""}','${flag}','${refStr.replace(/'/g,"\\'")}')">ℹ</button>
+        </div>
       </td>
       <td><span class="loinc-code">${t.loinc || "—"}</span></td>
       <td>
@@ -1729,6 +1838,14 @@ function renderResults(parsed, tests, age, gender) {
       </td>
     `;
     tbody.appendChild(tr);
+
+    // Hidden explanation row
+    const explainTr = document.createElement("tr");
+    explainTr.id = rowId;
+    explainTr.className = "test-explain-row";
+    explainTr.style.display = "none";
+    explainTr.innerHTML = `<td colspan="7"><div class="test-explain-inner" id="${rowId}-content"><span class="test-explain-loading">Loading explanation…</span></div></td>`;
+    tbody.appendChild(explainTr);
   });
 
   // Charts
@@ -1738,6 +1855,14 @@ function renderResults(parsed, tests, age, gender) {
   renderLoincGrid(tests);
 
   document.getElementById("results").classList.add("show");
+
+  // Show insights button; clear any previous insights
+  document.getElementById("insightsBtnWrap").style.display = "block";
+  document.getElementById("insightsSection").classList.remove("show");
+  document.getElementById("insightsBtn").classList.remove("loading");
+  document.getElementById("insightsBtn").disabled = false;
+  // Store flagged tests for later insights call
+  window._lastInsightsData = { tests, age, gender };
 }
 
 // ════════════════════════════════════════════════════════
@@ -1945,6 +2070,228 @@ dropZone.addEventListener("drop", e => {
     fileInput.dispatchEvent(new Event("change"));
   }
 });
+
+// ════════════════════════════════════════════════════════
+// INSIGHTS ENGINE
+// ════════════════════════════════════════════════════════
+
+function buildInsightsPrompt(tests, age, gender) {
+  const numericTests = tests.filter(t => typeof t.std_value === "number");
+  const abnormal = numericTests.filter(t => t.india_flag === "H" || t.india_flag === "L");
+  const normal   = numericTests.filter(t => t.india_flag === "N");
+  const fmt = arr => arr.map(t =>
+    `${t.canonical||t.raw_name}: ${t.std_value} ${t.std_unit||t.unit||""} [flag:${t.india_flag}${t.ref_range ? `, ref:${t.ref_range.min}-${t.ref_range.max===999?"∞":t.ref_range.max}` : ""}]`
+  ).join("\n");
+
+  return `You are a clinical lab report interpreter for Indian patients. Analyze the following lab results and return ONLY a valid JSON object — no prose, no markdown, no code fences.
+
+Patient: ${age}y ${gender}
+
+ABNORMAL RESULTS:
+${abnormal.length ? fmt(abnormal) : "None"}
+
+NORMAL RESULTS:
+${fmt(normal)}
+
+Return this exact JSON schema:
+{
+  "overall_score": <integer 0-100, clinically conservative>,
+  "overall_status": <"Excellent" | "Good" | "Needs Attention" | "Concerning">,
+  "summary": <2-3 sentence plain English overview, mention key findings>,
+  "panel_scores": [
+    { "panel": <string>, "status": <"good"|"caution"|"attention"|"unknown">, "note": <one short sentence> }
+  ],
+  "risk_flags": [
+    { "label": <short title>, "severity": <"info"|"warning"|"danger">, "detail": <1-2 sentences explaining the pattern>, "basis": [<test names>] }
+  ],
+  "recommendations": [
+    { "category": <"Diet"|"Lifestyle"|"Follow-up"|"Medication Review">, "text": <specific actionable advice> }
+  ]
+}
+
+Rules:
+1. Score conservatively — "Concerning" panel caps score at 60, "Attention" caps at 78
+2. Detect CROSS-PANEL patterns (e.g. HbA1c + Fasting glucose = pre-diabetic; low Hb + low MCV + low Ferritin = iron deficiency anemia)
+3. Only include panels that have test data present
+4. Risk flags only for notable multi-test patterns — not mildly borderline single values
+5. Recommendations must be specific, not generic
+6. Never diagnose — use "suggests", "may indicate", "consider discussing with your doctor"
+7. Max 3 risk flags, max 8 recommendations
+8. Return ONLY the JSON object`;
+}
+
+async function runInsights() {
+  const apiKey = document.getElementById("apiKey").value.trim();
+  if (!apiKey) { alert("Please enter your API key first."); return; }
+  const data = window._lastInsightsData;
+  if (!data) return;
+
+  const btn = document.getElementById("insightsBtn");
+  btn.classList.add("loading");
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-5",
+        max_tokens: 1500,
+        system: "You are a clinical lab interpreter. Return ONLY valid JSON, no markdown, no prose.",
+        messages: [{ role: "user", content: buildInsightsPrompt(data.tests, data.age, data.gender) }]
+      })
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(`API error ${resp.status}: ${err.error?.message || JSON.stringify(err)}`);
+    }
+    const apiData = await resp.json();
+    let raw = apiData.content.map(c => c.text || "").join("");
+    raw = raw.replace(/```json\n?/g,"").replace(/```\n?/g,"").trim();
+    const insights = JSON.parse(raw);
+    renderInsights(insights);
+    document.getElementById("insightsBtnWrap").style.display = "none";
+  } catch(err) {
+    console.error(err);
+    btn.classList.remove("loading");
+    btn.disabled = false;
+    alert("Insights error: " + err.message);
+  }
+}
+
+function renderInsights(ins) {
+  const score = Math.max(0, Math.min(100, ins.overall_score || 0));
+  const scoreColor = score >= 80 ? "#22c55e" : score >= 60 ? "#f59e0b" : "#ef4444";
+  const circumference = 2 * Math.PI * 42;
+  const offset = circumference - (score / 100) * circumference;
+
+  // Hero
+  document.getElementById("insightsHero").innerHTML = `
+    <div class="score-ring-wrap">
+      <svg width="100" height="100" viewBox="0 0 100 100">
+        <circle class="score-ring-bg" cx="50" cy="50" r="42"/>
+        <circle class="score-ring-fill" cx="50" cy="50" r="42"
+          stroke="${scoreColor}" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"/>
+      </svg>
+      <div class="score-center">
+        <div class="score-num" style="color:${scoreColor}">${score}</div>
+        <div class="score-denom">/100</div>
+      </div>
+    </div>
+    <div class="hero-text">
+      <div class="hero-label">Overall Health Score</div>
+      <div class="hero-status" style="color:${scoreColor}">${ins.overall_status || "—"}</div>
+      <div class="hero-summary">${ins.summary || ""}</div>
+    </div>
+  `;
+
+  // Panel strip
+  const icons = { good: "✓", caution: "⚠", attention: "✕", unknown: "·" };
+  document.getElementById("panelStrip").innerHTML = (ins.panel_scores || []).map(p => `
+    <div class="panel-chip ${p.status}" title="${p.note||""}">
+      <span class="panel-chip-dot"></span>${icons[p.status]||"·"} ${p.panel}
+    </div>
+  `).join("");
+
+  // Risk flags
+  const flags = ins.risk_flags || [];
+  const flagsBlock = document.getElementById("riskFlagsBlock");
+  if (flags.length) {
+    document.getElementById("riskFlags").innerHTML = flags.map(f => `
+      <div class="risk-flag ${f.severity}">
+        <div class="risk-flag-icon">${f.severity==="danger"?"🔴":f.severity==="warning"?"⚠️":"ℹ️"}</div>
+        <div class="risk-flag-body">
+          <div class="risk-flag-label">${f.label}</div>
+          <div class="risk-flag-detail">${f.detail}</div>
+          <div class="risk-flag-basis">${(f.basis||[]).map(b=>`<span class="risk-basis-chip">${b}</span>`).join("")}</div>
+        </div>
+      </div>
+    `).join("");
+    flagsBlock.style.display = "block";
+  } else { flagsBlock.style.display = "none"; }
+
+  // Recommendations
+  const recos = ins.recommendations || [];
+  const recoBlock = document.getElementById("recoBlock");
+  if (recos.length) {
+    const groups = {};
+    recos.forEach(r => { (groups[r.category] = groups[r.category]||[]).push(r.text); });
+    const catIcons = { "Diet":"🥗","Lifestyle":"🏃","Follow-up":"🔬","Medication Review":"💊" };
+    document.getElementById("recoGrid").innerHTML = Object.entries(groups).map(([cat, items]) => `
+      <div class="reco-card">
+        <div class="reco-cat"><span class="reco-cat-icon">${catIcons[cat]||"📌"}</span>${cat}</div>
+        <div class="reco-items">${items.map(i=>`<div class="reco-item">${i}</div>`).join("")}</div>
+      </div>
+    `).join("");
+    recoBlock.style.display = "block";
+  } else { recoBlock.style.display = "none"; }
+
+  document.getElementById("insightsSection").classList.add("show");
+}
+
+// ════════════════════════════════════════════════════════
+// PER-TEST EXPLANATION (inline expandable ℹ rows)
+// ════════════════════════════════════════════════════════
+const _explainCache = {};
+
+async function toggleExplain(event, rowId, testName, value, unit, flag, refRange) {
+  event.stopPropagation();
+  const row = document.getElementById(rowId);
+  const content = document.getElementById(rowId + "-content");
+
+  if (row.style.display !== "none") { row.style.display = "none"; return; }
+  row.style.display = "table-row";
+  if (_explainCache[rowId]) { content.innerHTML = _explainCache[rowId]; return; }
+
+  const apiKey = document.getElementById("apiKey").value.trim();
+  if (!apiKey) {
+    content.innerHTML = `<span style="color:var(--amber);font-size:12px">Enter your API key above to get explanations.</span>`;
+    return;
+  }
+
+  content.innerHTML = `<span class="test-explain-loading"><span class="spinner" style="width:12px;height:12px;border-width:1.5px;margin-right:6px;display:inline-block"></span>Loading…</span>`;
+
+  const patData = window._lastInsightsData || {};
+  const flagText = { H:"above the reference range", L:"below the reference range", N:"within normal range", NT:"not taken" }[flag] || flag;
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-5",
+        max_tokens: 250,
+        messages: [{ role: "user", content:
+          `Patient: ${patData.age||"?"}y ${patData.gender||"?"}.
+Test: ${testName} | Value: ${value} ${unit} — ${flagText} | Reference: ${refRange}
+
+Write 2-3 sentences for a non-medical reader:
+1. What this test measures
+2. What this specific result means for this patient
+3. If abnormal: one practical suggestion (not a diagnosis)
+No bullet points. No headers. Plain language only.`
+        }]
+      })
+    });
+    const apiData = await resp.json();
+    const text = apiData.content?.map(c=>c.text||"").join("") || "Unable to load explanation.";
+    const html = `<strong>${testName}:</strong> ${text}`;
+    _explainCache[rowId] = html;
+    content.innerHTML = html;
+  } catch(err) {
+    content.innerHTML = `<span style="color:var(--red);font-size:12px">Error: ${err.message}</span>`;
+  }
+}
 </script>
 </body>
 </html>
