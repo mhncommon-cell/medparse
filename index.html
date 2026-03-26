@@ -6,7 +6,6 @@
 <title>MedParse — Indian Lab Report Analyzer</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsonrepair@3.12.0/dist/web/jsonrepair.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
 
@@ -1868,7 +1867,8 @@ IMPORTANT RULES:
 6. CRITICAL — NO DUPLICATION: Each test must appear EXACTLY ONCE in the "tests" array. Never repeat a test under a different name variant. If a panel heading and a test line share the same name, include it only once as a test entry.
 7. CRITICAL — EXACT raw_name: Copy the test name EXACTLY as it appears in the report. Do not paraphrase, abbreviate, or rename. E.g. if the report says "HBsAg" do NOT rename it to "Hemoglobin" or "Hb".
 8. CRITICAL — DO NOT INVENT: Only extract tests that are visibly present in the report. Do not add tests based on what you expect a panel to contain.
-9. CRITICAL — COMPACT JSON: Return ONLY minified JSON with zero whitespace/indentation. No spaces after colons or commas. This maximizes data within the output token limit.`;
+9. CRITICAL — COMPACT JSON: Return ONLY minified JSON with zero whitespace/indentation. No spaces after colons or commas.
+10. CRITICAL — OMIT NULL FIELDS: Never write a key whose value is null. Skip it entirely. E.g. write {"raw_name":"X","result":1,"unit":"g/dL","lab_flag":"N"} not {"raw_name":"X","result":1,"unit":"g/dL","lab_reference_min":null,"lab_reference_max":null,"lab_flag":"N","method":null,"sample_type":null,"previous_value":null,"previous_date":null}. This is essential to stay within the output token limit.`;
 }
 
 // ════════════════════════════════════════════════════════
@@ -2005,26 +2005,42 @@ async function runAnalysis() {
       return d.content.map(c => c.text || "").join("");
     }
 
-    // Helper: resolve jsonrepair function regardless of how the bundle exposes it
-    const _jsonRepairFn = (() => {
-      if (typeof window.jsonrepair === "function") return window.jsonrepair;
-      if (typeof window.jsonrepair === "object" && typeof window.jsonrepair?.jsonrepair === "function") return window.jsonrepair.jsonrepair;
-      return null;
-    })();
+    // Helper: repair truncated or slightly malformed JSON (handles token-limit cutoffs)
+    function repairJSON(str) {
+      // Normalize newlines/tabs inside what should be compact JSON
+      str = str.replace(/[\r\n\t]+/g, " ");
+      // Remove trailing comma before a closing bracket
+      str = str.replace(/,(\s*[}\]])/g, "$1");
+      // Walk the string to track open brackets and unclosed strings
+      const stack = [];
+      let inStr = false, esc = false;
+      for (let i = 0; i < str.length; i++) {
+        const c = str[i];
+        if (esc) { esc = false; continue; }
+        if (c === "\\" && inStr) { esc = true; continue; }
+        if (c === '"') { inStr = !inStr; continue; }
+        if (inStr) continue;
+        if (c === "{") stack.push("}");
+        else if (c === "[") stack.push("]");
+        else if (c === "}" || c === "]") stack.pop();
+      }
+      if (inStr) str += '"';          // truncated inside a string value
+      str = str.replace(/,\s*$/, ""); // trailing comma before we add closers
+      while (stack.length) str += stack.pop();
+      return str;
+    }
 
-    // Helper: clean and parse one raw Claude response
+    // Helper: clean and parse one raw Claude response (3 passes)
     function parseRawText(txt) {
       const clean = txt.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim().replace(/[\r\n]+/g, " ");
-      // Pass 1: direct parse of cleaned text
+      // Pass 1: direct parse
       try { return JSON.parse(clean); } catch(e1) { /* continue */ }
-      // Pass 2: extract outermost JSON object and retry
+      // Pass 2: extract outermost JSON object
       const m = txt.match(/\{[\s\S]*\}/);
       const candidate = (m ? m[0] : clean).replace(/[\r\n]+/g, " ");
       try { return JSON.parse(candidate); } catch(e2) { /* continue */ }
-      // Pass 3: jsonrepair to fix missing commas, NaN, bad escapes, etc.
-      if (_jsonRepairFn) {
-        try { return JSON.parse(_jsonRepairFn(candidate)); } catch(e3) { /* continue */ }
-      }
+      // Pass 3: repair truncation / trailing commas, then parse
+      try { return JSON.parse(repairJSON(candidate)); } catch(e3) { /* continue */ }
       throw new Error("JSON parse failed.\n\nRaw response (first 500 chars):\n" + txt.substring(0, 500));
     }
 
