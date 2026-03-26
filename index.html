@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedParse — Indian Lab Report Analyzer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --surface3: #22222e;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8e8f0;
+    --muted: #7a7a90;
+    --accent: #6c63ff;
+    --accent2: #a78bfa;
+    --green: #22c55e;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --cyan: #06b6d4;
+    --pink: #ec4899;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; line-height: 1.6; min-height: 100vh; overflow-x: hidden; }
+
+  /* Ambient background */
+  body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 60% 40% at 20% 10%, rgba(108,99,255,0.08) 0%, transparent 60%), radial-gradient(ellipse 50% 30% at 80% 80%, rgba(6,182,212,0.06) 0%, transparent 60%); pointer-events: none; z-index: 0; }
+
+  .app { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* Header */
+  header { padding: 48px 0 36px; display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--border); margin-bottom: 40px; }
+  .logo { display: flex; flex-direction: column; gap: 4px; }
+  .logo-name { font-family: var(--font-head); font-size: 28px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(135deg, #e8e8f0 0%, var(--accent2) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .logo-sub { font-family: var(--font-mono); font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .header-badges { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .badge { font-family: var(--font-mono); font-size: 10px; padding: 3px 8px; border-radius: 4px; border: 1px solid; letter-spacing: 0.05em; }
+  .badge-loinc { color: var(--cyan); border-color: rgba(6,182,212,0.3); background: rgba(6,182,212,0.06); }
+  .badge-india { color: var(--accent2); border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.06); }
+  .badge-nabl { color: var(--green); border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.06); }
+
+  /* Upload zone */
+  .upload-section { margin-bottom: 32px; }
+  .upload-zone { border: 1.5px dashed var(--border2); border-radius: 16px; padding: 48px 32px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface); position: relative; overflow: hidden; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: rgba(108,99,255,0.05); }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 36px; margin-bottom: 16px; }
+  .upload-title { font-family: var(--font-head); font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+  .upload-hint { color: var(--muted); font-size: 13px; }
+  .upload-formats { margin-top: 12px; display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+  .fmt-tag { font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 3px; background: var(--surface3); color: var(--muted); border: 1px solid var(--border); }
+  .file-chosen { display: none; align-items: center; gap: 12px; padding: 14px 18px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; margin-top: 12px; }
+  .file-chosen.show { display: flex; }
+  .file-chosen-name { font-family: var(--font-mono); font-size: 13px; color: var(--accent2); flex: 1; }
+  .file-chosen-size { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+
+  /* Patient info form */
+  .patient-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-family: var(--font-mono); font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+  .field input, .field select { background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; padding: 9px 12px; color: var(--text); font-family: var(--font-body); font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .field select option { background: var(--surface2); }
+
+  /* API Key input */
+  .apikey-bar { display: flex; align-items: center; gap: 12px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; }
+  .apikey-bar label { font-family: var(--font-mono); font-size: 10px; color: var(--muted); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.08em; }
+  .apikey-bar input { flex: 1; background: transparent; border: none; color: var(--text); font-family: var(--font-mono); font-size: 13px; outline: none; min-width: 0; }
+  .apikey-bar input::placeholder { color: var(--muted); }
+  .apikey-notice { font-size: 11px; color: var(--muted); margin-top: -10px; margin-bottom: 14px; font-family: var(--font-mono); }
+  .apikey-notice a { color: var(--accent2); text-decoration: none; }
+
+  /* Analyze button */
+  .analyze-btn { width: 100%; padding: 15px; background: var(--accent); border: none; border-radius: 10px; color: #fff; font-family: var(--font-head); font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em; position: relative; overflow: hidden; }
+  .analyze-btn:hover:not(:disabled) { background: var(--accent2); transform: translateY(-1px); }
+  .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .analyze-btn .btn-spinner { display: none; }
+  .analyze-btn.loading .btn-text { display: none; }
+  .analyze-btn.loading .btn-spinner { display: inline-block; }
+
+  /* Pipeline status */
+  .pipeline { display: none; gap: 0; margin: 24px 0; flex-direction: column; }
+  .pipeline.show { display: flex; }
+  .pipe-step { display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px; border-left: 2px solid var(--border); margin-left: 20px; position: relative; transition: border-color 0.3s; }
+  .pipe-step::before { content: ''; position: absolute; left: -8px; top: 18px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface3); border: 2px solid var(--border2); transition: all 0.3s; }
+  .pipe-step.active { border-color: var(--accent); }
+  .pipe-step.active::before { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px rgba(108,99,255,0.5); }
+  .pipe-step.done { border-color: var(--green); }
+  .pipe-step.done::before { background: var(--green); border-color: var(--green); }
+  .pipe-step.error { border-color: var(--red); }
+  .pipe-step.error::before { background: var(--red); border-color: var(--red); }
+  .pipe-step-label { font-family: var(--font-mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+  .pipe-step-detail { font-size: 13px; color: var(--text); margin-top: 2px; }
+
+  /* Results section */
+  .results { display: none; }
+  .results.show { display: block; }
+  .results-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+  .results-title { font-family: var(--font-head); font-size: 24px; font-weight: 700; }
+  .results-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+  .meta-chip { font-family: var(--font-mono); font-size: 11px; padding: 3px 9px; border-radius: 4px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
+
+  /* Summary cards */
+  .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 36px; }
+  .sum-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+  .sum-card-value { font-family: var(--font-head); font-size: 32px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+  .sum-card-label { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .sum-card.normal .sum-card-value { color: var(--green); }
+  .sum-card.high .sum-card-value { color: var(--red); }
+  .sum-card.low .sum-card-value { color: var(--amber); }
+  .sum-card.total .sum-card-value { color: var(--text); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; margin-bottom: 24px; background: var(--surface); border-radius: 10px; padding: 4px; width: fit-content; }
+  .tab-btn { font-family: var(--font-mono); font-size: 12px; padding: 8px 16px; border-radius: 7px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s; letter-spacing: 0.04em; text-transform: uppercase; }
+  .tab-btn.active { background: var(--surface3); color: var(--text); }
+
+  /* Test table */
+  .test-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--surface2); }
+  th { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 11px 16px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .test-name { font-weight: 500; }
+  .test-alias { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .loinc-code { font-family: var(--font-mono); font-size: 11px; color: var(--cyan); }
+  .value-cell { font-family: var(--font-mono); font-size: 14px; font-weight: 500; }
+  .value-cell.normal { color: var(--green); }
+  .value-cell.high { color: var(--red); }
+  .value-cell.low { color: var(--amber); }
+  .unit-cell { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .ref-cell { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .flag-pill { display: inline-block; font-family: var(--font-mono); font-size: 10px; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.05em; font-weight: 500; }
+  .flag-N { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+  .flag-H { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+  .flag-L { background: rgba(245,158,11,0.1); color: var(--amber); border: 1px solid rgba(245,158,11,0.2); }
+  .flag-NT { background: rgba(122,122,144,0.1); color: var(--muted); border: 1px solid rgba(122,122,144,0.2); }
+  .convert-note { font-size: 10px; color: var(--muted); font-family: var(--font-mono); margin-top: 2px; }
+
+  /* Chart section */
+  .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px; margin-top: 8px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  .chart-card-title { font-family: var(--font-head); font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .chart-card-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; font-family: var(--font-mono); }
+  .chart-wrap { position: relative; height: 220px; }
+
+  /* LOINC map view */
+  .loinc-grid { display: grid; gap: 10px; }
+  .loinc-row { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .loinc-from { font-size: 13px; flex: 1; }
+  .loinc-arrow { color: var(--muted); font-family: var(--font-mono); font-size: 12px; }
+  .loinc-to { font-family: var(--font-mono); font-size: 12px; color: var(--cyan); }
+  .loinc-name { font-size: 12px; color: var(--muted); }
+  .loinc-status { font-family: var(--font-mono); font-size: 10px; padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+  .loinc-verified { background: rgba(34,197,94,0.1); color: var(--green); }
+  .loinc-mapped { background: rgba(6,182,212,0.1); color: var(--cyan); }
+  .loinc-inferred { background: rgba(245,158,11,0.1); color: var(--amber); }
+
+  /* Error / empty state */
+  .empty-state { text-align: center; padding: 60px 24px; color: var(--muted); }
+  .error-box { background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.2); border-radius: 10px; padding: 16px 20px; color: var(--red); font-size: 13px; margin: 16px 0; font-family: var(--font-mono); white-space: pre-wrap; }
+
+  /* Divider label */
+  .section-label { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin: 32px 0 14px; display: flex; align-items: center; gap: 12px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* Raw JSON */
+  .raw-json { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); white-space: pre-wrap; overflow-x: auto; max-height: 400px; overflow-y: auto; line-height: 1.7; }
+
+  /* Disclaimer */
+  .disclaimer { background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.15); border-radius: 10px; padding: 14px 18px; font-size: 12px; color: var(--amber); margin-top: 32px; line-height: 1.6; }
+  .disclaimer strong { font-weight: 500; }
+
+  /* Tabs content */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Spinner */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+
+  /* Unit conversion badge */
+  .conv-badge { font-family: var(--font-mono); font-size: 9px; padding: 1px 5px; border-radius: 3px; background: rgba(6,182,212,0.1); color: var(--cyan); border: 1px solid rgba(6,182,212,0.2); margin-left: 4px; }
+
+  /* Progress bar in chart */
+  .gauge-bar { height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+  .gauge-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+
+  @media (max-width: 640px) {
+    .charts-grid { grid-template-columns: 1fr; }
+    .patient-form { grid-template-columns: 1fr 1fr; }
+    header { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo">
+      <div class="logo-name">MedParse</div>
+      <div class="logo-sub">Indian Lab Report Analyzer · v2.0</div>
+    </div>
+    <div class="header-badges">
+      <span class="badge badge-loinc">LOINC mapped</span>
+      <span class="badge badge-india">India ref ranges</span>
+      <span class="badge badge-nabl">NABL format</span>
+    </div>
+  </header>
+
+  <!-- Upload -->
+  <div class="upload-section">
+    <div class="upload-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".pdf,image/*,.jpg,.jpeg,.png" multiple>
+      <div class="upload-icon">⬆</div>
+      <div class="upload-title">Drop your lab report here</div>
+      <div class="upload-hint">PDF or image — MedPlus, Thyrocare, SRL, Metropolis, Redcliffe, Apollo, Lal Path, Dr Lal</div>
+      <div class="upload-formats">
+        <span class="fmt-tag">PDF</span>
+        <span class="fmt-tag">JPG</span>
+        <span class="fmt-tag">PNG</span>
+        <span class="fmt-tag">TIFF</span>
+      </div>
+    </div>
+    <div class="file-chosen" id="fileChosen">
+      <span>📄</span>
+      <span class="file-chosen-name" id="fileChosenName">—</span>
+      <span class="file-chosen-size" id="fileChosenSize">—</span>
+    </div>
+  </div>
+
+  <!-- Patient meta -->
+  <div class="section-label">Patient information</div>
+  <div class="patient-form">
+    <div class="field">
+      <label>Age (years)</label>
+      <input type="number" id="patAge" placeholder="e.g. 62" min="0" max="120" value="">
+    </div>
+    <div class="field">
+      <label>Gender</label>
+      <select id="patGender">
+        <option value="">Select…</option>
+        <option value="Female">Female</option>
+        <option value="Male">Male</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Patient Name (optional)</label>
+      <input type="text" id="patName" placeholder="From report or enter">
+    </div>
+    <div class="field">
+      <label>Report Date (optional)</label>
+      <input type="text" id="patDate" placeholder="e.g. 01-Apr-25">
+    </div>
+  </div>
+
+  <div class="section-label">API Key</div>
+  <div class="apikey-bar">
+    <label>Anthropic API Key</label>
+    <input type="password" id="apiKey" placeholder="sk-ant-api03-…" autocomplete="off" spellcheck="false">
+  </div>
+  <p class="apikey-notice">Your key is used only in your browser and never stored. Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>.</p>
+
+  <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">
+    <span class="btn-text">Analyze Report</span>
+    <span class="btn-spinner"><span class="spinner"></span>Analyzing…</span>
+  </button>
+
+  <div id="errorBox" class="error-box" style="display:none"></div>
+
+  <!-- Pipeline steps -->
+  <div class="pipeline" id="pipeline">
+    <div class="pipe-step" id="step-extract">
+      <div>
+        <div class="pipe-step-label">Step 1 · Extract</div>
+        <div class="pipe-step-detail" id="step-extract-detail">Sending PDF/image to Claude for text extraction…</div>
+      </div>
+    </div>
+    <div class="pipe-step" id="step-parse">
+      <div>
+        <div class="pipe-step-label">Step 2 · Parse & Structure</div>
+        <div class="pipe-step-detail" id="step-parse-detail">Identifying test names, values, units, patient info…</div>
+      </div>
+    </div>
+    <div class="pipe-step" id="step-loinc">
+      <div>
+        <div class="pipe-step-label">Step 3 · LOINC Mapping</div>
+        <div class="pipe-step-detail" id="step-loinc-detail">Resolving test aliases → canonical LOINC codes…</div>
+      </div>
+    </div>
+    <div class="pipe-step" id="step-units">
+      <div>
+        <div class="pipe-step-label">Step 4 · Unit Standardization</div>
+        <div class="pipe-step-detail" id="step-units-detail">Converting units to standard before reference comparison…</div>
+      </div>
+    </div>
+    <div class="pipe-step" id="step-ref">
+      <div>
+        <div class="pipe-step-label">Step 5 · India Reference Ranges</div>
+        <div class="pipe-step-detail" id="step-ref-detail">Applying age/gender-specific Indian population ranges…</div>
+      </div>
+    </div>
+    <div class="pipe-step" id="step-plot">
+      <div>
+        <div class="pipe-step-label">Step 6 · Plot</div>
+        <div class="pipe-step-detail" id="step-plot-detail">Building charts and trend visualizations…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="results-header">
+      <div>
+        <div class="results-title" id="resultTitle">Lab Report Analysis</div>
+        <div class="results-meta" id="resultMeta"></div>
+      </div>
+    </div>
+
+    <div class="summary-cards" id="summaryCards"></div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('tests', this)">Tests</button>
+      <button class="tab-btn" onclick="switchTab('charts', this)">Charts</button>
+      <button class="tab-btn" onclick="switchTab('loinc', this)">LOINC Map</button>
+      <button class="tab-btn" onclick="switchTab('raw', this)">Raw JSON</button>
+    </div>
+
+    <div id="tab-tests" class="tab-content active">
+      <div class="test-table-wrap">
+        <table id="testTable">
+          <thead>
+            <tr>
+              <th>Test Name</th>
+              <th>LOINC</th>
+              <th>Value</th>
+              <th>Std Unit</th>
+              <th>Reference (India)</th>
+              <th>Flag</th>
+              <th>% of Range</th>
+            </tr>
+          </thead>
+          <tbody id="testTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-charts" class="tab-content">
+      <div class="charts-grid" id="chartsGrid"></div>
+    </div>
+
+    <div id="tab-loinc" class="tab-content">
+      <div class="loinc-grid" id="loincGrid"></div>
+    </div>
+
+    <div id="tab-raw" class="tab-content">
+      <pre class="raw-json" id="rawJson"></pre>
+    </div>
+
+    <div class="disclaimer">
+      <strong>⚠ Clinical Disclaimer:</strong> Reference ranges are from peer-reviewed Indian population studies (Sairam et al. 2014, Shah et al. 2018, Sachdev et al. 2021, Marwaha et al. 2009/2013, Verma et al. 2006). These are population-level 95% reference intervals, not diagnostic cutoffs. Consult a registered medical practitioner before acting on any result. LOINC mapping is automated and may require expert verification.
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// INDIA REFERENCE RANGES DATABASE
+// Embedded from india_reference_ranges.py
+// ════════════════════════════════════════════════════════
+const REFERENCE_DB = {
+  "Male": {
+    "child_1_5": { "Hemoglobin":{"min":10.5,"max":13.5,"unit":"g/dL"}, "Glucose Fasting":{"min":70,"max":100,"unit":"mg/dL"}, "Creatinine":{"min":0.2,"max":0.5,"unit":"mg/dL"}, "Urea":{"min":11,"max":36,"unit":"mg/dL"}, "Cholesterol Total":{"min":0,"max":170,"unit":"mg/dL"}, "Triglycerides":{"min":0,"max":100,"unit":"mg/dL"}, "HDL Cholesterol":{"min":40,"max":999,"unit":"mg/dL"}, "LDL Cholesterol":{"min":0,"max":110,"unit":"mg/dL"}, "ALT (SGPT)":{"min":7,"max":45,"unit":"U/L"}, "AST (SGOT)":{"min":10,"max":55,"unit":"U/L"}, "TSH":{"min":0.7,"max":6.0,"unit":"µIU/mL"}, "WBC Count":{"min":6.0,"max":17.0,"unit":"10^9/L"}, "Platelet Count":{"min":150,"max":450,"unit":"10^9/L"}, "MCV":{"min":72,"max":86,"unit":"fL"}, "HbA1c":{"min":0,"max":5.7,"unit":"%"}, "Hematocrit (PCV)":{"min":33,"max":40,"unit":"%"}, "Bilirubin Total":{"min":0.1,"max":1.0,"unit":"mg/dL"}, "ALP":{"min":100,"max":400,"unit":"U/L"} },
+    "child_6_10": { "Hemoglobin":{"min":11,"max":14.5,"unit":"g/dL"}, "Glucose Fasting":{"min":70,"max":100,"unit":"mg/dL"}, "Creatinine":{"min":0.3,"max":0.7,"unit":"mg/dL"}, "Urea":{"min":11,"max":36,"unit":"mg/dL"}, "Cholesterol Total":{"min":0,"max":170,"unit":"mg/dL"}, "Triglycerides":{"min":0,"max":100,"unit":"mg/dL"}, "HDL Cholesterol":{"min":40,"max":999,"unit":"mg/dL"}, "LDL Cholesterol":{"min":0,"max":110,"unit":"mg/dL"}, "ALT (SGPT)":{"min":7,"max":40,"unit":"U/L"}, "AST (SGOT)":{"min":10,"max":40,"unit":"U/L"}, "TSH":{"min":0.7,"max":5.5,"unit":"µIU/mL"}, "WBC Count":{"min":4.5,"max":13.5,"unit":"10^9/L"}, "Platelet Count":{"min":150,"max":400,"unit":"10^9/L"}, "MCV":{"min":75,"max":90,"unit":"fL"}, "HbA1c":{"min":0,"max":5.7,"unit":"%"}, "Hematocrit (PCV)":{"min":34,"max":43,"unit":"%"}, "Bilirubin Total":{"min":0.1,"max":1.0,"unit":"mg/dL"}, "ALP":{"min":100,"max":380,"unit":"U/L"} },
+    "adolescent_11_17": { "Hemoglobin":{"min":11.5,"max":16,"unit":"g/dL"}, "Glucose Fasting":{"min":70,"max":100,"unit":"mg/dL"}, "HbA1c":{"min":0,"max":5.7,"unit":"%"}, "Creatinine":{"min":0.5,"max":1.1,"unit":"mg/dL"}, "Urea":{"min":11,"max":40,"unit":"mg/dL"}, "Cholesterol Total":{"min":0,"max":170,"unit":"mg/dL"}, "Triglycerides":{"min":0,"max":130,"unit":"mg/dL"}, "HDL Cholesterol":{"min":40,"max":999,"unit":"mg/dL"}, "LDL Cholesterol":{"min":0,"max":110,"unit":"mg/dL"}, "ALT (SGPT)":{"min":7,"max":45,"unit":"U/L"}, "AST (SGOT)":{"min":10,"max":45,"unit":"U/L"}, "TSH":{"min":0.6,"max":6.0,"unit":"µIU/mL"}, "WBC Count":{"min":4.0,"max":11.0,"unit":"10^9/L"}, "Platelet Count":{"min":150,"max":400,"unit":"10^9/L"}, "MCV":{"min":77,"max":95,"unit":"fL"}, "HbA1c":{"min":0,"max":5.7,"unit":"%"}, "Hematocrit (PCV)":{"min":35,"max":47,"unit":"%"}, "Bilirubin Total":{"min":0.1,"max":1.2,"unit":"mg/dL"}, "ALP":{"min":50,"max":400,"unit":"U/L"}, "Neutrophils":{"min":40,"max":75,"unit":"%"}, "Lymphocytes":{"min":20,"max":45,"unit":"%"} },
+    "adult_18_60": { "Hemoglobin":{"min":12.3,"max":17,"unit":"g/dL"}, "Glucose Fasting":{"min":70,"max":100,"unit":"mg/dL"}, "HbA1c":{"min":0,"max":5.7,"unit":"%"}, "Creatinine":{"min":0.6,"max":1.2,"unit":"mg/dL"}, "Urea":{"min":15,"max":45,"unit":"mg/dL"}, "Cholesterol Total":{"min":0,"max":200,"unit":"mg/dL"}, "Triglycerides":{"min":0,"max":150,"unit":"mg/dL"}, "HDL Cholesterol":{"min":40,"max":999,"unit":"mg/dL"}, "LDL Cholesterol":{"min":0,"max":100,"unit":"mg/dL"}, "ALT (SGPT)":{"min":7,"max":56,"unit":"U/L"}, "AST (SGOT)":{"min":10,"max":40,"unit":"U/L"}, "TSH":{"min":0.4,"max":5.5,"unit":"µIU/mL"}, "WBC Count":{"min":4.0,"max":11.0,"unit":"10^9/L"}, "Platelet Count":{"min":150,"max":410,"unit":"10^9/L"}, "MCV":{"min":83,"max":101,"unit":"fL"}, "Hematocrit (PCV)":{"min":39,"max":50,"unit":"%"}, "Bilirubin Total":{"min":0.1,"max":1.2,"unit":"mg/dL"}, "ALP":{"min":44,"max":147,"unit":"U/L"}, "Neutrophils":{"min":40,"max":80,"unit":"%"}, "Lymphocytes":{"min":20,"max":40,"unit":"%"}, "Monocytes":{"min":2,"max":10,"unit":"%"}, "Eosinophils":{"min":1,"max":8,"unit":"%"}, "Basophils":{"min":0,"max":1,"unit":"%"}, "RBC Count":{"min":4.5,"max":5.9,"unit":"10^12/L"}, "MCH":{"min":27,"max":32,"unit":"pg"}, "MCHC":{"min":31.5,"max":34.5,"unit":"g/dL"}, "RDW-CV":{"min":11.5,"max":14.5,"unit":"%"}, "Uric Acid":{"min":3.5,"max":7.2,"unit":"mg/dL"}, "Calcium (total)":{"min":8.5,"max":10.5,"unit":"mg/dL"}, "Total Protein":{"min":6.4,"max":8.3,"unit":"g/dL"}, "Albumin":{"min":3.5,"max":5.0,"unit":"g/dL"}, "Vitamin D (25-OH)":{"min":30,"max":100,"unit":"ng/mL"}, "Vitamin B12":{"min":200,"max":900,"unit":"pg/mL"}, "HIV 1&2 Antibodies":{"min":0,"max":0.9,"unit":"S/CO"}, "HBsAg":{"min":0,"max":0.9,"unit":"S/CO"}, "Cholesterol VLDL":{"min":5,"max":40,"unit":"mg/dL"} },
+    "senior_61_plus": { "Hemoglobin":{"min":12,"max":17,"unit":"g/dL"}, "Glucose Fasting":{"min":70,"max":110,"unit":"mg/dL"}, "HbA1c":{"min":0,"max":6.0,"unit":"%"}, "Creatinine":{"min":0.6,"max":1.4,"unit":"mg/dL"}, "Urea":{"min":15,"max":55,"unit":"mg/dL"}, "Cholesterol Total":{"min":0,"max":200,"unit":"mg/dL"}, "Triglycerides":{"min":0,"max":150,"unit":"mg/dL"}, "HDL Cholesterol":{"min":40,"max":999,"unit":"mg/dL"}, "LDL Cholesterol":{"min":0,"max":130,"unit":"mg/dL"}, "ALT (SGPT)":{"min":7,"max":56,"unit":"U/L"}, "AST (SGOT)":{"min":10,"max":45,"unit":"U/L"}, "TSH":{"min":0.4,"max":6.5,"unit":"µIU/mL"}, "WBC Count":{"min":3.5,"max":10.0,"unit":"10^9/L"}, "Platelet Count":{"min":130,"max":380,"unit":"10^9/L"}, "MCV":{"min":80,"max":100,"unit":"fL"}, "Hematocrit (PCV)":{"min":36,"max":50,"unit":"%"}, "Bilirubin Total":{"min":0.1,"max":1.2,"unit":"mg/dL"}, "ALP":{"min":44,"max":180,"unit":"U/L"}, "Neutrophils":{"min":40,"max":75,"unit":"%"}, "Lymphocytes":{"min":15,"max":45,"unit":"%"}, "Monocytes":{"min":2,"max":12,"unit":"%"}, "Eosinophils":{"min":1,"max":8,"unit":"%"}, "Basophils":{"min":0,"max":2,"unit":"%"}, "RBC Count":{"min":3.8,"max":5.5,"unit":"10^12/L"}, "MCH":{"min":26,"max":33,"unit":"pg"}, "MCHC":{"min":31.5,"max":35,"unit":"g/dL"}, "RDW-CV":{"min":11.5,"max":15,"unit":"%"}, "Uric Acid":{"min":3.5,"max":8.5,"unit":"mg/dL"}, "Calcium (total)":{"min":8.5,"max":10.5,"unit":"mg/dL"}, "Total Protein":{"min":5.8,"max":8.3,"unit":"g/dL"}, "Albumin":{"min":3.2,"max":5.0,"unit":"g/dL"}, "Vitamin D (25-OH)":{"min":30,"max":100,"unit":"ng/mL"}, "Vitamin B12":{"min":200,"max":900,"unit":"pg/mL"}, "HIV 1&2 Antibodies":{"min":0,"max":0.9,"unit":"S/CO"}, "HBsAg":{"min":0,"max":0.9,"unit":"S/CO"}, "Cholesterol VLDL":{"min":5,"max":40,"unit":"mg/dL"} }
+  },
+  "Female": {
+    "child_1_5": { "Hemoglobin":{"min":10.5,"max":13.5,"unit":"g/dL"}, "Glucose Fasting":{"min":70,"max":100,"unit":"mg/dL"}, "Creatinine":{"min":0.2,"max":0.5,"unit":"mg/dL"}, "Urea":{"min":11,"max":36,"unit":"mg/dL"}, "Cholesterol Total":{"min":0,"max":170,"unit":"mg/dL"}, "Triglycerides":{"min":0,"max":100,"unit":"mg/dL"}, "HDL Cholesterol":{"min":40,"max":999,"unit":"mg/dL"}, "LDL Cholesterol":{"min":0,"max":110,"unit":"mg/dL"}, "ALT (SGPT)":{"min":7,"max":35,"unit":"U/L"}, "AST (SGOT)":{"min":10,"max":50,"unit":"U/L"}, "TSH":{"min":0.7,"max":6.0,"unit":"µIU/mL"}, "WBC Count":{"min":6.0,"max":17.0,"unit":"10^9/L"}, "Platelet Count":{"min":150,"max":450,"unit":"10^9/L"}, "HbA1c":{"min":0,"max":5.7,"unit":"%"}, "Hematocrit (PCV)":{"min":33,"max":40,"unit":"%"}, "Bilirubin Total":{"min":0.1,"max":1.0,"unit":"mg/dL"} },
+    "child_6_10": { "Hemoglobin":{"min":11,"max":14.5,"unit":"g/dL"}, "Glucose Fasting":{"min":70,"max":100,"unit":"mg/dL"}, "Creatinine":{"min":0.3,"max":0.7,"unit":"mg/dL"}, "Urea":{"min":11,"max":36,"unit":"mg/dL"}, "Cholesterol Total":{"min":0,"max":170,"unit":"mg/dL"}, "Triglycerides":{"min":0,"max":100,"unit":"mg/dL"}, "HDL Cholesterol":{"min":40,"max":999,"unit":"mg/dL"}, "LDL Cholesterol":{"min":0,"max":110,"unit":"mg/dL"}, "ALT (SGPT)":{"min":7,"max":35,"unit":"U/L"}, "AST (SGOT)":{"min":10,"max":40,"unit":"U/L"}, "TSH":{"min":0.7,"max":5.5,"unit":"µIU/mL"}, "WBC Count":{"min":4.5,"max":13.5,"unit":"10^9/L"}, "Platelet Count":{"min":150,"max":400,"unit":"10^9/L"}, "HbA1c":{"min":0,"max":5.7,"unit":"%"}, "Hematocrit (PCV)":{"min":34,"max":43,"unit":"%"}, "Bilirubin Total":{"min":0.1,"max":1.0,"unit":"mg/dL"} },
+    "adolescent_11_17": { "Hemoglobin":{"min":11.5,"max":15.5,"unit":"g/dL"}, "Glucose Fasting":{"min":70,"max":100,"unit":"mg/dL"}, "HbA1c":{"min":0,"max":5.7,"unit":"%"}, "Creatinine":{"min":0.4,"max":0.9,"unit":"mg/dL"}, "Urea":{"min":11,"max":36,"unit":"mg/dL"}, "Cholesterol Total":{"min":0,"max":170,"unit":"mg/dL"}, "Triglycerides":{"min":0,"max":130,"unit":"mg/dL"}, "HDL Cholesterol":{"min":40,"max":999,"unit":"mg/dL"}, "LDL Cholesterol":{"min":0,"max":110,"unit":"mg/dL"}, "ALT (SGPT)":{"min":7,"max":35,"unit":"U/L"}, "AST (SGOT)":{"min":10,"max":40,"unit":"U/L"}, "TSH":{"min":0.6,"max":6.0,"unit":"µIU/mL"}, "WBC Count":{"min":4.1,"max":11.3,"unit":"10^9/L"}, "Platelet Count":{"min":132,"max":442,"unit":"10^9/L"}, "HbA1c":{"min":0,"max":5.7,"unit":"%"}, "Hematocrit (PCV)":{"min":34,"max":46,"unit":"%"}, "Bilirubin Total":{"min":0.1,"max":1.2,"unit":"mg/dL"}, "Neutrophils":{"min":40,"max":70,"unit":"%"}, "Lymphocytes":{"min":20,"max":45,"unit":"%"} },
+    "adult_18_60": { "Hemoglobin":{"min":9.9,"max":14.3,"unit":"g/dL"}, "Glucose Fasting":{"min":70,"max":100,"unit":"mg/dL"}, "HbA1c":{"min":0,"max":5.7,"unit":"%"}, "Creatinine":{"min":0.4,"max":0.95,"unit":"mg/dL"}, "Urea":{"min":15,"max":40,"unit":"mg/dL"}, "Cholesterol Total":{"min":0,"max":200,"unit":"mg/dL"}, "Triglycerides":{"min":0,"max":150,"unit":"mg/dL"}, "HDL Cholesterol":{"min":50,"max":999,"unit":"mg/dL"}, "LDL Cholesterol":{"min":0,"max":100,"unit":"mg/dL"}, "ALT (SGPT)":{"min":7,"max":35,"unit":"U/L"}, "AST (SGOT)":{"min":10,"max":35,"unit":"U/L"}, "TSH":{"min":0.4,"max":5.5,"unit":"µIU/mL"}, "WBC Count":{"min":4.1,"max":11.3,"unit":"10^9/L"}, "Platelet Count":{"min":132,"max":442,"unit":"10^9/L"}, "MCV":{"min":83,"max":101,"unit":"fL"}, "Hematocrit (PCV)":{"min":36,"max":46,"unit":"%"}, "Bilirubin Total":{"min":0.1,"max":1.2,"unit":"mg/dL"}, "ALP":{"min":44,"max":147,"unit":"U/L"}, "Neutrophils":{"min":40,"max":80,"unit":"%"}, "Lymphocytes":{"min":20,"max":40,"unit":"%"}, "Monocytes":{"min":2,"max":10,"unit":"%"}, "Eosinophils":{"min":1,"max":8,"unit":"%"}, "Basophils":{"min":0,"max":1,"unit":"%"}, "RBC Count":{"min":3.5,"max":5.2,"unit":"10^12/L"}, "MCH":{"min":27,"max":32,"unit":"pg"}, "MCHC":{"min":31.5,"max":34.5,"unit":"g/dL"}, "RDW-CV":{"min":11.5,"max":14.5,"unit":"%"}, "Uric Acid":{"min":2.4,"max":5.7,"unit":"mg/dL"}, "Calcium (total)":{"min":8.5,"max":10.5,"unit":"mg/dL"}, "Total Protein":{"min":6.4,"max":8.3,"unit":"g/dL"}, "Albumin":{"min":3.5,"max":5.0,"unit":"g/dL"}, "Vitamin D (25-OH)":{"min":30,"max":100,"unit":"ng/mL"}, "Vitamin B12":{"min":200,"max":900,"unit":"pg/mL"}, "HIV 1&2 Antibodies":{"min":0,"max":0.9,"unit":"S/CO"}, "HBsAg":{"min":0,"max":0.9,"unit":"S/CO"}, "Cholesterol VLDL":{"min":5,"max":40,"unit":"mg/dL"} },
+    "senior_61_plus": { "Hemoglobin":{"min":11.5,"max":16,"unit":"g/dL"}, "Glucose Fasting":{"min":70,"max":110,"unit":"mg/dL"}, "HbA1c":{"min":0,"max":6.0,"unit":"%"}, "Creatinine":{"min":0.4,"max":1.0,"unit":"mg/dL"}, "Urea":{"min":15,"max":55,"unit":"mg/dL"}, "Cholesterol Total":{"min":0,"max":200,"unit":"mg/dL"}, "Triglycerides":{"min":0,"max":150,"unit":"mg/dL"}, "HDL Cholesterol":{"min":40,"max":999,"unit":"mg/dL"}, "LDL Cholesterol":{"min":0,"max":130,"unit":"mg/dL"}, "ALT (SGPT)":{"min":7,"max":40,"unit":"U/L"}, "AST (SGOT)":{"min":10,"max":40,"unit":"U/L"}, "TSH":{"min":0.4,"max":6.5,"unit":"µIU/mL"}, "WBC Count":{"min":4.0,"max":11.0,"unit":"10^9/L"}, "Platelet Count":{"min":130,"max":420,"unit":"10^9/L"}, "MCV":{"min":80,"max":100,"unit":"fL"}, "Hematocrit (PCV)":{"min":35,"max":46,"unit":"%"}, "Bilirubin Total":{"min":0.1,"max":1.2,"unit":"mg/dL"}, "ALP":{"min":44,"max":180,"unit":"U/L"}, "Neutrophils":{"min":40,"max":75,"unit":"%"}, "Lymphocytes":{"min":15,"max":45,"unit":"%"}, "Monocytes":{"min":2,"max":12,"unit":"%"}, "Eosinophils":{"min":1,"max":8,"unit":"%"}, "Basophils":{"min":0,"max":2,"unit":"%"}, "RBC Count":{"min":3.5,"max":5.2,"unit":"10^12/L"}, "MCH":{"min":26,"max":33,"unit":"pg"}, "MCHC":{"min":31.5,"max":35,"unit":"g/dL"}, "RDW-CV":{"min":11.5,"max":15,"unit":"%"}, "Uric Acid":{"min":2.4,"max":6.5,"unit":"mg/dL"}, "Calcium (total)":{"min":8.5,"max":10.5,"unit":"mg/dL"}, "Total Protein":{"min":5.8,"max":8.3,"unit":"g/dL"}, "Albumin":{"min":3.2,"max":5.0,"unit":"g/dL"}, "Vitamin D (25-OH)":{"min":30,"max":100,"unit":"ng/mL"}, "Vitamin B12":{"min":200,"max":900,"unit":"pg/mL"}, "HIV 1&2 Antibodies":{"min":0,"max":0.9,"unit":"S/CO"}, "HBsAg":{"min":0,"max":0.9,"unit":"S/CO"}, "Cholesterol VLDL":{"min":5,"max":40,"unit":"mg/dL"} }
+  }
+};
+
+function resolveAgeBand(age) {
+  if (age < 1)  return "child_1_5";
+  if (age <= 5)  return "child_1_5";
+  if (age <= 10) return "child_6_10";
+  if (age <= 17) return "adolescent_11_17";
+  if (age <= 60) return "adult_18_60";
+  return "senior_61_plus";
+}
+
+function getRefRange(gender, age, paramName) {
+  const g = gender || "Male";
+  const band = resolveAgeBand(age || 35);
+  const db = REFERENCE_DB[g] || REFERENCE_DB["Male"];
+  const bandData = db[band] || db["adult_18_60"] || {};
+  return bandData[paramName] || null;
+}
+
+// ════════════════════════════════════════════════════════
+// LOINC KNOWN MAP (key aliases from Indian lab reports → LOINC)
+// Embedded subset covering common Indian lab tests
+// ════════════════════════════════════════════════════════
+const LOINC_ALIAS_MAP = {
+  // Glucose
+  "glucose fasting": { loinc: "1558-6", canonical: "Glucose Fasting", refKey: "Glucose Fasting" },
+  "blood glucose fasting": { loinc: "1558-6", canonical: "Glucose Fasting", refKey: "Glucose Fasting" },
+  "fbs": { loinc: "1558-6", canonical: "Glucose Fasting", refKey: "Glucose Fasting" },
+  "fasting blood sugar": { loinc: "1558-6", canonical: "Glucose Fasting", refKey: "Glucose Fasting" },
+  "fasting glucose": { loinc: "1558-6", canonical: "Glucose Fasting", refKey: "Glucose Fasting" },
+  "glucose - fasting": { loinc: "1558-6", canonical: "Glucose Fasting", refKey: "Glucose Fasting" },
+  // HbA1c
+  "hba1c": { loinc: "4548-4", canonical: "HbA1c", refKey: "HbA1c" },
+  "hemoglobin a1c": { loinc: "4548-4", canonical: "HbA1c", refKey: "HbA1c" },
+  "glycated hemoglobin": { loinc: "4548-4", canonical: "HbA1c", refKey: "HbA1c" },
+  "glycosylated hemoglobin": { loinc: "4548-4", canonical: "HbA1c", refKey: "HbA1c" },
+  "a1c": { loinc: "4548-4", canonical: "HbA1c", refKey: "HbA1c" },
+  "hgba1c": { loinc: "4548-4", canonical: "HbA1c", refKey: "HbA1c" },
+  // Hemoglobin
+  "hemoglobin": { loinc: "718-7", canonical: "Hemoglobin", refKey: "Hemoglobin" },
+  "hb": { loinc: "718-7", canonical: "Hemoglobin", refKey: "Hemoglobin" },
+  "hgb": { loinc: "718-7", canonical: "Hemoglobin", refKey: "Hemoglobin" },
+  "haemoglobin": { loinc: "718-7", canonical: "Hemoglobin", refKey: "Hemoglobin" },
+  // Creatinine
+  "creatinine": { loinc: "2160-0", canonical: "Creatinine", refKey: "Creatinine" },
+  "creatinine serum": { loinc: "2160-0", canonical: "Creatinine", refKey: "Creatinine" },
+  "serum creatinine": { loinc: "2160-0", canonical: "Creatinine", refKey: "Creatinine" },
+  "creatinine - serum": { loinc: "2160-0", canonical: "Creatinine", refKey: "Creatinine" },
+  "s. creatinine": { loinc: "2160-0", canonical: "Creatinine", refKey: "Creatinine" },
+  // Urea
+  "urea": { loinc: "3091-6", canonical: "Urea", refKey: "Urea" },
+  "blood urea": { loinc: "3091-6", canonical: "Urea", refKey: "Urea" },
+  "serum urea": { loinc: "3091-6", canonical: "Urea", refKey: "Urea" },
+  "urea nitrogen": { loinc: "3091-6", canonical: "Urea", refKey: "Urea" },
+  "bun": { loinc: "3094-0", canonical: "Urea", refKey: "Urea" },
+  // Cholesterol
+  "cholesterol total": { loinc: "2093-3", canonical: "Cholesterol Total", refKey: "Cholesterol Total" },
+  "total cholesterol": { loinc: "2093-3", canonical: "Cholesterol Total", refKey: "Cholesterol Total" },
+  "cholesterol - total": { loinc: "2093-3", canonical: "Cholesterol Total", refKey: "Cholesterol Total" },
+  "tc": { loinc: "2093-3", canonical: "Cholesterol Total", refKey: "Cholesterol Total" },
+  "hdl cholesterol": { loinc: "2085-9", canonical: "HDL Cholesterol", refKey: "HDL Cholesterol" },
+  "hdl": { loinc: "2085-9", canonical: "HDL Cholesterol", refKey: "HDL Cholesterol" },
+  "hdl-c": { loinc: "2085-9", canonical: "HDL Cholesterol", refKey: "HDL Cholesterol" },
+  "cholesterol - hdl": { loinc: "2085-9", canonical: "HDL Cholesterol", refKey: "HDL Cholesterol" },
+  "ldl cholesterol": { loinc: "13457-7", canonical: "LDL Cholesterol", refKey: "LDL Cholesterol" },
+  "ldl": { loinc: "13457-7", canonical: "LDL Cholesterol", refKey: "LDL Cholesterol" },
+  "ldl-c": { loinc: "13457-7", canonical: "LDL Cholesterol", refKey: "LDL Cholesterol" },
+  "cholesterol - ldl": { loinc: "13457-7", canonical: "LDL Cholesterol", refKey: "LDL Cholesterol" },
+  "vldl cholesterol": { loinc: "13458-5", canonical: "Cholesterol VLDL", refKey: "Cholesterol VLDL" },
+  "vldl": { loinc: "13458-5", canonical: "Cholesterol VLDL", refKey: "Cholesterol VLDL" },
+  "cholesterol vldl": { loinc: "13458-5", canonical: "Cholesterol VLDL", refKey: "Cholesterol VLDL" },
+  // Triglycerides
+  "triglycerides": { loinc: "2571-8", canonical: "Triglycerides", refKey: "Triglycerides" },
+  "tg": { loinc: "2571-8", canonical: "Triglycerides", refKey: "Triglycerides" },
+  "trigs": { loinc: "2571-8", canonical: "Triglycerides", refKey: "Triglycerides" },
+  "serum triglycerides": { loinc: "2571-8", canonical: "Triglycerides", refKey: "Triglycerides" },
+  // Liver
+  "alt": { loinc: "1742-6", canonical: "ALT (SGPT)", refKey: "ALT (SGPT)" },
+  "sgpt": { loinc: "1742-6", canonical: "ALT (SGPT)", refKey: "ALT (SGPT)" },
+  "alt (sgpt)": { loinc: "1742-6", canonical: "ALT (SGPT)", refKey: "ALT (SGPT)" },
+  "alanine aminotransferase": { loinc: "1742-6", canonical: "ALT (SGPT)", refKey: "ALT (SGPT)" },
+  "alanine transaminase": { loinc: "1742-6", canonical: "ALT (SGPT)", refKey: "ALT (SGPT)" },
+  "alanine aminotransferase (alt/sgpt)": { loinc: "1742-6", canonical: "ALT (SGPT)", refKey: "ALT (SGPT)" },
+  "ast": { loinc: "1920-8", canonical: "AST (SGOT)", refKey: "AST (SGOT)" },
+  "sgot": { loinc: "1920-8", canonical: "AST (SGOT)", refKey: "AST (SGOT)" },
+  "ast (sgot)": { loinc: "1920-8", canonical: "AST (SGOT)", refKey: "AST (SGOT)" },
+  "aspartate aminotransferase": { loinc: "1920-8", canonical: "AST (SGOT)", refKey: "AST (SGOT)" },
+  "aspartate aminotransferase (ast/sgot)": { loinc: "1920-8", canonical: "AST (SGOT)", refKey: "AST (SGOT)" },
+  "alp": { loinc: "6768-6", canonical: "ALP", refKey: "ALP" },
+  "alkaline phosphatase": { loinc: "6768-6", canonical: "ALP", refKey: "ALP" },
+  "alkaline phosphatase (alp)": { loinc: "6768-6", canonical: "ALP", refKey: "ALP" },
+  "bilirubin total": { loinc: "1975-2", canonical: "Bilirubin Total", refKey: "Bilirubin Total" },
+  "total bilirubin": { loinc: "1975-2", canonical: "Bilirubin Total", refKey: "Bilirubin Total" },
+  "t. bili": { loinc: "1975-2", canonical: "Bilirubin Total", refKey: "Bilirubin Total" },
+  "t.bilirubin": { loinc: "1975-2", canonical: "Bilirubin Total", refKey: "Bilirubin Total" },
+  "albumin": { loinc: "1751-7", canonical: "Albumin", refKey: "Albumin" },
+  "serum albumin": { loinc: "1751-7", canonical: "Albumin", refKey: "Albumin" },
+  "total protein": { loinc: "2885-2", canonical: "Total Protein", refKey: "Total Protein" },
+  "protein total": { loinc: "2885-2", canonical: "Total Protein", refKey: "Total Protein" },
+  // CBC
+  "wbc": { loinc: "6690-2", canonical: "WBC Count", refKey: "WBC Count" },
+  "wbc count": { loinc: "6690-2", canonical: "WBC Count", refKey: "WBC Count" },
+  "total leucocyte count": { loinc: "6690-2", canonical: "WBC Count", refKey: "WBC Count" },
+  "tlc": { loinc: "6690-2", canonical: "WBC Count", refKey: "WBC Count" },
+  "total leukocyte count": { loinc: "6690-2", canonical: "WBC Count", refKey: "WBC Count" },
+  "rbc": { loinc: "789-8", canonical: "RBC Count", refKey: "RBC Count" },
+  "rbc count": { loinc: "789-8", canonical: "RBC Count", refKey: "RBC Count" },
+  "platelet count": { loinc: "777-3", canonical: "Platelet Count", refKey: "Platelet Count" },
+  "platelets": { loinc: "777-3", canonical: "Platelet Count", refKey: "Platelet Count" },
+  "plt": { loinc: "777-3", canonical: "Platelet Count", refKey: "Platelet Count" },
+  "hematocrit": { loinc: "20570-8", canonical: "Hematocrit (PCV)", refKey: "Hematocrit (PCV)" },
+  "pcv": { loinc: "20570-8", canonical: "Hematocrit (PCV)", refKey: "Hematocrit (PCV)" },
+  "packed cell volume": { loinc: "20570-8", canonical: "Hematocrit (PCV)", refKey: "Hematocrit (PCV)" },
+  "hematocrit (pcv)": { loinc: "20570-8", canonical: "Hematocrit (PCV)", refKey: "Hematocrit (PCV)" },
+  "mcv": { loinc: "787-2", canonical: "MCV", refKey: "MCV" },
+  "mean corpuscular volume": { loinc: "787-2", canonical: "MCV", refKey: "MCV" },
+  "mch": { loinc: "785-6", canonical: "MCH", refKey: "MCH" },
+  "mean corpuscular hemoglobin": { loinc: "785-6", canonical: "MCH", refKey: "MCH" },
+  "mchc": { loinc: "786-4", canonical: "MCHC", refKey: "MCHC" },
+  "rdw": { loinc: "788-0", canonical: "RDW-CV", refKey: "RDW-CV" },
+  "rdw-cv": { loinc: "788-0", canonical: "RDW-CV", refKey: "RDW-CV" },
+  "neutrophils": { loinc: "770-8", canonical: "Neutrophils", refKey: "Neutrophils" },
+  "neutrophil count": { loinc: "770-8", canonical: "Neutrophils", refKey: "Neutrophils" },
+  "lymphocytes": { loinc: "736-9", canonical: "Lymphocytes", refKey: "Lymphocytes" },
+  "monocytes": { loinc: "5905-5", canonical: "Monocytes", refKey: "Monocytes" },
+  "eosinophils": { loinc: "713-8", canonical: "Eosinophils", refKey: "Eosinophils" },
+  "basophils": { loinc: "706-2", canonical: "Basophils", refKey: "Basophils" },
+  "absolute neutrophil count": { loinc: "26499-4", canonical: "Absolute Neutrophil Count", refKey: null },
+  "absolute lymphocyte count": { loinc: "26474-7", canonical: "Absolute Lymphocyte Count", refKey: null },
+  // Thyroid
+  "tsh": { loinc: "3016-3", canonical: "TSH", refKey: "TSH" },
+  "thyroid stimulating hormone": { loinc: "3016-3", canonical: "TSH", refKey: "TSH" },
+  "ft4": { loinc: "3024-7", canonical: "Free T4 (FT4)", refKey: "Free T4 (FT4)" },
+  "free t4": { loinc: "3024-7", canonical: "Free T4 (FT4)", refKey: "Free T4 (FT4)" },
+  "free thyroxine": { loinc: "3024-7", canonical: "Free T4 (FT4)", refKey: "Free T4 (FT4)" },
+  "ft3": { loinc: "3051-0", canonical: "Free T3 (FT3)", refKey: "Free T3 (FT3)" },
+  "free t3": { loinc: "3051-0", canonical: "Free T3 (FT3)", refKey: "Free T3 (FT3)" },
+  // Serology
+  "hiv 1 & 2 antibody": { loinc: "75622-1", canonical: "HIV 1&2 Antibodies", refKey: "HIV 1&2 Antibodies" },
+  "hiv 1& 2 antibodies": { loinc: "75622-1", canonical: "HIV 1&2 Antibodies", refKey: "HIV 1&2 Antibodies" },
+  "hiv 1&2": { loinc: "75622-1", canonical: "HIV 1&2 Antibodies", refKey: "HIV 1&2 Antibodies" },
+  "anti-hiv": { loinc: "75622-1", canonical: "HIV 1&2 Antibodies", refKey: "HIV 1&2 Antibodies" },
+  "hbsag": { loinc: "5195-3", canonical: "HBsAg", refKey: "HBsAg" },
+  "hepatitis b surface antigen": { loinc: "5195-3", canonical: "HBsAg", refKey: "HBsAg" },
+  "hepatitis b surface antigen (hbsag)": { loinc: "5195-3", canonical: "HBsAg", refKey: "HBsAg" },
+  // Uric acid
+  "uric acid": { loinc: "3084-1", canonical: "Uric Acid", refKey: "Uric Acid" },
+  "serum uric acid": { loinc: "3084-1", canonical: "Uric Acid", refKey: "Uric Acid" },
+  // Vitamins
+  "vitamin d": { loinc: "14635-7", canonical: "Vitamin D (25-OH)", refKey: "Vitamin D (25-OH)" },
+  "vitamin d (25-oh)": { loinc: "14635-7", canonical: "Vitamin D (25-OH)", refKey: "Vitamin D (25-OH)" },
+  "25-oh vitamin d": { loinc: "14635-7", canonical: "Vitamin D (25-OH)", refKey: "Vitamin D (25-OH)" },
+  "25 hydroxyvitamin d": { loinc: "14635-7", canonical: "Vitamin D (25-OH)", refKey: "Vitamin D (25-OH)" },
+  "vitamin b12": { loinc: "2132-9", canonical: "Vitamin B12", refKey: "Vitamin B12" },
+  "b12": { loinc: "2132-9", canonical: "Vitamin B12", refKey: "Vitamin B12" },
+  "cobalamin": { loinc: "2132-9", canonical: "Vitamin B12", refKey: "Vitamin B12" },
+  // Calcium
+  "calcium": { loinc: "17861-6", canonical: "Calcium (total)", refKey: "Calcium (total)" },
+  "calcium serum": { loinc: "17861-6", canonical: "Calcium (total)", refKey: "Calcium (total)" },
+  "calcium - serum": { loinc: "17861-6", canonical: "Calcium (total)", refKey: "Calcium (total)" },
+  "serum calcium": { loinc: "17861-6", canonical: "Calcium (total)", refKey: "Calcium (total)" },
+};
+
+function resolveLOINC(rawName) {
+  const key = rawName.toLowerCase().trim();
+  if (LOINC_ALIAS_MAP[key]) return { ...LOINC_ALIAS_MAP[key], inputName: rawName, method: "exact" };
+  // Fuzzy: check if any alias is contained in the key or vice versa
+  for (const [alias, data] of Object.entries(LOINC_ALIAS_MAP)) {
+    if (key.includes(alias) || alias.includes(key)) {
+      return { ...data, inputName: rawName, method: "fuzzy" };
+    }
+  }
+  return { loinc: null, canonical: rawName, refKey: null, inputName: rawName, method: "unresolved" };
+}
+
+// ════════════════════════════════════════════════════════
+// UNIT CONVERSION ENGINE
+// ════════════════════════════════════════════════════════
+const UNIT_CONVERSIONS = {
+  // Glucose: mmol/L → mg/dL
+  "glucose fasting": { "mmol/l": { factor: 18.016, toUnit: "mg/dL" } },
+  "hba1c": { "mmol/mol": { factor: 0.0915, offset: 2.15, toUnit: "%" } },
+  // Cholesterol: mmol/L → mg/dL  
+  "cholesterol total": { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
+  "hdl cholesterol": { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
+  "ldl cholesterol": { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
+  "cholesterol vldl": { "mmol/l": { factor: 38.67, toUnit: "mg/dL" } },
+  // Triglycerides
+  "triglycerides": { "mmol/l": { factor: 88.57, toUnit: "mg/dL" } },
+  // Creatinine
+  "creatinine": { "µmol/l": { factor: 0.01131, toUnit: "mg/dL" }, "umol/l": { factor: 0.01131, toUnit: "mg/dL" } },
+  // Hemoglobin g/L → g/dL
+  "hemoglobin": { "g/l": { factor: 0.1, toUnit: "g/dL" } },
+  // Platelet count: /µL or /cumm → 10^9/L (Lakhs/µL × 100 = 10^9/L; but 1 lakh/µL = 100 × 10^9/L)
+  "platelet count": { "lakhs/cumm": { factor: 100, toUnit: "10^9/L" }, "lakhs/µl": { factor: 100, toUnit: "10^9/L" }, "/cumm": { factor: 0.001, toUnit: "10^9/L" }, "x10^3/µl": { factor: 1, toUnit: "10^9/L" } },
+  // WBC /cumm → 10^9/L
+  "wbc count": { "/cumm": { factor: 0.001, toUnit: "10^9/L" }, "cells/cumm": { factor: 0.001, toUnit: "10^9/L" } },
+  // Vitamin D: nmol/L → ng/mL
+  "vitamin d (25-oh)": { "nmol/l": { factor: 0.401, toUnit: "ng/mL" } },
+};
+
+function standardizeUnit(canonicalName, value, rawUnit) {
+  const key = canonicalName.toLowerCase();
+  const unitKey = (rawUnit || "").toLowerCase().trim();
+  const convTable = UNIT_CONVERSIONS[key];
+  if (convTable && convTable[unitKey]) {
+    const conv = convTable[unitKey];
+    const converted = value * conv.factor + (conv.offset || 0);
+    return { value: Math.round(converted * 1000) / 1000, unit: conv.toUnit, converted: true, originalUnit: rawUnit };
+  }
+  return { value, unit: rawUnit, converted: false };
+}
+
+// ════════════════════════════════════════════════════════
+// CLAUDE API — SYSTEM PROMPT
+// ════════════════════════════════════════════════════════
+function buildSystemPrompt() {
+  return `You are MedParse, a medical lab report extraction engine specialized in Indian diagnostic lab reports (MedPlus, Thyrocare, SRL, Metropolis, Redcliffe, Apollo Diagnostics, Lal PathLabs, Dr Lal PathLabs).
+
+Your ONLY job is to extract structured data from the report image/PDF and return a single valid JSON object. No prose, no markdown, no explanation — ONLY JSON.
+
+Extract and return this exact schema:
+{
+  "patient": {
+    "name": string or null,
+    "age": number or null,
+    "gender": "Male" | "Female" | null,
+    "order_id": string or null,
+    "sample_date": string or null,
+    "report_date": string or null,
+    "lab_name": string or null,
+    "referral_doctor": string or null,
+    "nabl_accredited": boolean
+  },
+  "tests": [
+    {
+      "raw_name": string,           // exact name as printed in the report
+      "result": number | string,    // numeric if possible, else "TEST NOT TAKEN" / "Reactive" / "Non-Reactive"
+      "unit": string,               // unit as printed
+      "lab_reference_min": number | null,
+      "lab_reference_max": number | null,
+      "lab_flag": "H" | "L" | "N" | "ABNORMAL" | "CRITICAL" | null,  // from the lab's own flagging
+      "method": string | null,      // e.g. "Hexokinase", "HPLC"
+      "sample_type": string | null, // e.g. "Serum", "Whole Blood EDTA"
+      "previous_value": number | null,   // from prior visit if shown
+      "previous_date": string | null
+    }
+  ],
+  "panels": ["list of panel names found, e.g. Lipid Profile, CBC, LFT"],
+  "chromatogram_data": null or object if HPLC chromatogram present,
+  "lab_assessment": string or null  // any preliminary assessment text
+}
+
+IMPORTANT RULES:
+1. Extract ALL tests including those marked "TEST NOT TAKEN" — set result to "TEST NOT TAKEN"
+2. For serology (HIV, HBsAg), capture the S/CO ratio as result AND the qualitative result (Reactive/Non-Reactive) as lab_flag or a separate note
+3. Capture previous visit values if shown in the report
+4. Do NOT interpret, flag, or add clinical judgement — just extract
+5. Return ONLY the JSON object, nothing else`;
+}
+
+// ════════════════════════════════════════════════════════
+// FILE → BASE64
+// ════════════════════════════════════════════════════════
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// PIPELINE STATE
+// ════════════════════════════════════════════════════════
+let chartInstances = [];
+
+function setStep(id, state, detail) {
+  const el = document.getElementById(id);
+  el.className = "pipe-step " + state;
+  if (detail) document.getElementById(id + "-detail").textContent = detail;
+}
+
+function showError(msg) {
+  const box = document.getElementById("errorBox");
+  box.textContent = msg;
+  box.style.display = "block";
+}
+
+// ════════════════════════════════════════════════════════
+// MAIN ANALYSIS PIPELINE
+// ════════════════════════════════════════════════════════
+async function runAnalysis() {
+  const fileInput = document.getElementById("fileInput");
+  const age = parseFloat(document.getElementById("patAge").value);
+  const gender = document.getElementById("patGender").value;
+  const apiKey = document.getElementById("apiKey").value.trim();
+
+  if (!fileInput.files.length) { showError("Please upload a lab report file first."); return; }
+  if (!apiKey) { showError("Please enter your Anthropic API key."); return; }
+
+  document.getElementById("errorBox").style.display = "none";
+  const btn = document.getElementById("analyzeBtn");
+  btn.classList.add("loading");
+  btn.disabled = true;
+
+  document.getElementById("results").classList.remove("show");
+  document.getElementById("pipeline").classList.add("show");
+  ["step-extract","step-parse","step-loinc","step-units","step-ref","step-plot"].forEach(s => setStep(s, "", "Waiting…"));
+
+  try {
+    // ── STEP 1: Extract via Claude API ──
+    setStep("step-extract", "active", "Sending to Claude for extraction…");
+
+    const files = Array.from(fileInput.files);
+    const messages = [];
+    const contentParts = [];
+
+    for (const file of files) {
+      const b64 = await fileToBase64(file);
+      const isPDF = file.type === "application/pdf";
+      if (isPDF) {
+        contentParts.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } });
+      } else {
+        const mt = file.type || "image/jpeg";
+        contentParts.push({ type: "image", source: { type: "base64", media_type: mt, data: b64 } });
+      }
+    }
+    contentParts.push({ type: "text", text: "Extract all lab test data from this report and return ONLY the JSON object as specified in your instructions." });
+
+    messages.push({ role: "user", content: contentParts });
+
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+        ...(files.some(f => f.type === "application/pdf") ? { "anthropic-beta": "pdfs-2024-09-25" } : {})
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-5",
+        max_tokens: 8192,
+        system: buildSystemPrompt(),
+        messages
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(`API error ${resp.status}: ${err.error?.message || JSON.stringify(err)}`);
+    }
+
+    const apiData = await resp.json();
+    const rawText = apiData.content.map(c => c.text || "").join("");
+    setStep("step-extract", "done", `Extracted ${rawText.length} chars from Claude`);
+
+    // ── STEP 2: Parse JSON ──
+    setStep("step-parse", "active", "Parsing structured data…");
+    let parsed;
+    try {
+      const clean = rawText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      try {
+        parsed = JSON.parse(clean);
+      } catch(e) {
+        // Try to extract largest JSON object from text
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("No JSON object found in response.\n\nRaw response (first 500 chars):\n" + rawText.substring(0, 500));
+        parsed = JSON.parse(jsonMatch[0]);
+      }
+    } catch(e) {
+      throw new Error("JSON parse failed: " + e.message + "\n\nRaw response (first 500 chars):\n" + rawText.substring(0, 500));
+    }
+
+    // Merge patient info from form if not in report
+    if (age && !parsed.patient?.age) parsed.patient = parsed.patient || {};
+    if (age) parsed.patient.age = parsed.patient.age || age;
+    if (gender) parsed.patient.gender = parsed.patient.gender || gender;
+
+    const patAge = parsed.patient?.age || age || 35;
+    const patGender = parsed.patient?.gender || gender || "Male";
+    const tests = parsed.tests || [];
+    setStep("step-parse", "done", `Parsed ${tests.length} test entries, patient: ${parsed.patient?.name || "—"}, ${patAge}y ${patGender}`);
+
+    // ── STEP 3: LOINC Mapping ──
+    setStep("step-loinc", "active", "Resolving test names → LOINC codes…");
+    const enrichedTests = tests.map(t => {
+      const loincResult = resolveLOINC(t.raw_name);
+      return { ...t, ...loincResult };
+    });
+    const resolved = enrichedTests.filter(t => t.loinc).length;
+    setStep("step-loinc", "done", `Mapped ${resolved}/${enrichedTests.length} tests to LOINC codes`);
+
+    // ── STEP 4: Unit Standardization ──
+    setStep("step-units", "active", "Standardizing units…");
+    const unitStdTests = enrichedTests.map(t => {
+      if (typeof t.result !== "number") return { ...t, std_value: t.result, std_unit: t.unit, unit_converted: false };
+      const std = standardizeUnit(t.canonical, t.result, t.unit);
+      return { ...t, std_value: std.value, std_unit: std.unit, unit_converted: std.converted, original_unit: std.originalUnit };
+    });
+    const converted = unitStdTests.filter(t => t.unit_converted).length;
+    setStep("step-units", "done", `Unit-standardized ${converted} test values`);
+
+    // ── STEP 5: Reference Range Lookup ──
+    setStep("step-ref", "active", "Applying India age/gender-specific reference ranges…");
+    const flaggedTests = unitStdTests.map(t => {
+      if (typeof t.std_value !== "number") return { ...t, india_flag: "NT", ref_range: null };
+      const ref = t.refKey ? getRefRange(patGender, patAge, t.refKey) : null;
+      let india_flag = "N";
+      let pct = null;
+      if (ref) {
+        const lo = ref.min, hi = ref.max === 999 ? t.std_value * 2 : ref.max;
+        if (t.std_value < lo) india_flag = "L";
+        else if (t.std_value > ref.max && ref.max !== 999) india_flag = "H";
+        else india_flag = "N";
+        const range = hi - lo;
+        pct = range > 0 ? Math.max(0, Math.min(100, ((t.std_value - lo) / range) * 100)) : 50;
+      } else {
+        india_flag = "?";
+      }
+      return { ...t, india_flag, ref_range: ref, pct_of_range: pct };
+    });
+    const abnormal = flaggedTests.filter(t => t.india_flag === "H" || t.india_flag === "L").length;
+    setStep("step-ref", "done", `${abnormal} values outside India reference range`);
+
+    // ── STEP 6: Render ──
+    setStep("step-plot", "active", "Building visualization…");
+    renderResults(parsed, flaggedTests, patAge, patGender);
+    setStep("step-plot", "done", "Charts and table rendered");
+
+    document.getElementById("rawJson").textContent = JSON.stringify({ patient: parsed.patient, tests: flaggedTests }, null, 2);
+
+  } catch(err) {
+    console.error(err);
+    showError("Error: " + err.message);
+    ["step-extract","step-parse","step-loinc","step-units","step-ref","step-plot"].forEach(s => {
+      const el = document.getElementById(s);
+      if (el.classList.contains("active")) setStep(s, "error", err.message);
+    });
+  } finally {
+    btn.classList.remove("loading");
+    btn.disabled = false;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER RESULTS
+// ════════════════════════════════════════════════════════
+function renderResults(parsed, tests, age, gender) {
+  const pat = parsed.patient || {};
+
+  // Title & meta
+  document.getElementById("resultTitle").textContent =
+    (pat.name ? `${pat.name} — ` : "") + "Lab Report Analysis";
+  const meta = document.getElementById("resultMeta");
+  meta.innerHTML = [
+    pat.sample_date && `<span class="meta-chip">📅 ${pat.sample_date}</span>`,
+    `<span class="meta-chip">👤 ${age}y ${gender}</span>`,
+    pat.lab_name && `<span class="meta-chip">🏥 ${pat.lab_name}</span>`,
+    pat.order_id && `<span class="meta-chip">🔖 ${pat.order_id}</span>`,
+    pat.nabl_accredited && `<span class="meta-chip badge-nabl">✓ NABL</span>`,
+  ].filter(Boolean).join("");
+
+  // Summary cards
+  const numericTests = tests.filter(t => typeof t.std_value === "number");
+  const normal = numericTests.filter(t => t.india_flag === "N").length;
+  const high = numericTests.filter(t => t.india_flag === "H").length;
+  const low = numericTests.filter(t => t.india_flag === "L").length;
+  const notTaken = tests.filter(t => t.std_value === "TEST NOT TAKEN").length;
+
+  document.getElementById("summaryCards").innerHTML = `
+    <div class="sum-card total"><div class="sum-card-value">${tests.length}</div><div class="sum-card-label">Total Tests</div></div>
+    <div class="sum-card normal"><div class="sum-card-value">${normal}</div><div class="sum-card-label">Normal</div></div>
+    <div class="sum-card high"><div class="sum-card-value">${high}</div><div class="sum-card-label">Above Range</div></div>
+    <div class="sum-card low"><div class="sum-card-value">${low}</div><div class="sum-card-label">Below Range</div></div>
+    ${notTaken > 0 ? `<div class="sum-card"><div class="sum-card-value" style="color:var(--muted)">${notTaken}</div><div class="sum-card-label">Not Taken</div></div>` : ""}
+  `;
+
+  // Test table
+  const tbody = document.getElementById("testTableBody");
+  tbody.innerHTML = "";
+  tests.forEach(t => {
+    const isNumeric = typeof t.std_value === "number";
+    const flag = t.india_flag || "NT";
+    const flagLabel = { N: "Normal", H: "High", L: "Low", NT: "N/A", "?": "No Ref" }[flag] || flag;
+    const refStr = t.ref_range ? `${t.ref_range.min}–${t.ref_range.max === 999 ? "∞" : t.ref_range.max} ${t.ref_range.unit}` : "—";
+    const pct = t.pct_of_range;
+    const gaugeColor = { N: "#22c55e", H: "#ef4444", L: "#f59e0b" }[flag] || "#7a7a90";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <div class="test-name">${t.canonical || t.raw_name}</div>
+        ${t.raw_name !== t.canonical ? `<div class="test-alias">${t.raw_name}</div>` : ""}
+        ${t.method ? `<div class="test-alias" style="color:var(--muted)">Method: ${t.method}</div>` : ""}
+      </td>
+      <td><span class="loinc-code">${t.loinc || "—"}</span></td>
+      <td>
+        <span class="value-cell ${isNumeric ? (flag === "N" ? "normal" : flag === "H" ? "high" : flag === "L" ? "low" : "") : ""}">${isNumeric ? t.std_value : (t.std_value || "—")}</span>
+        ${t.unit_converted ? `<span class="conv-badge">conv</span>` : ""}
+        ${t.previous_value != null ? `<div class="convert-note">prev: ${t.previous_value} (${t.previous_date || "prior"})</div>` : ""}
+      </td>
+      <td><span class="unit-cell">${isNumeric ? (t.std_unit || "—") : "—"}</span></td>
+      <td><span class="ref-cell">${refStr}</span></td>
+      <td><span class="flag-pill flag-${flag}">${flagLabel}</span></td>
+      <td style="min-width:100px">
+        ${isNumeric && pct != null ? `
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-bottom:3px">${Math.round(pct)}%</div>
+          <div class="gauge-bar"><div class="gauge-fill" style="width:${pct}%;background:${gaugeColor}"></div></div>
+        ` : "—"}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Charts
+  renderCharts(tests);
+
+  // LOINC grid
+  renderLoincGrid(tests);
+
+  document.getElementById("results").classList.add("show");
+}
+
+// ════════════════════════════════════════════════════════
+// CHARTS
+// ════════════════════════════════════════════════════════
+function renderCharts(tests) {
+  // Destroy existing
+  chartInstances.forEach(c => c.destroy());
+  chartInstances = [];
+  const grid = document.getElementById("chartsGrid");
+  grid.innerHTML = "";
+
+  // Group tests into chart panels
+  const panels = [
+    { title: "Metabolic / Glucose", subtitle: "Glucose, HbA1c, Urea, Creatinine", keys: ["Glucose Fasting","HbA1c","Urea","Creatinine","Uric Acid"] },
+    { title: "Lipid Profile", subtitle: "Cholesterol fractions & Triglycerides", keys: ["Cholesterol Total","HDL Cholesterol","LDL Cholesterol","Cholesterol VLDL","Triglycerides"] },
+    { title: "Complete Blood Count", subtitle: "Hemoglobin, WBC, Platelets", keys: ["Hemoglobin","Hematocrit (PCV)","MCV","WBC Count","Platelet Count","RBC Count"] },
+    { title: "Differential Count", subtitle: "Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils", keys: ["Neutrophils","Lymphocytes","Monocytes","Eosinophils","Basophils"] },
+    { title: "Liver Function", subtitle: "ALT, AST, ALP, Bilirubin", keys: ["ALT (SGPT)","AST (SGOT)","ALP","Bilirubin Total","Albumin","Total Protein"] },
+    { title: "Serology", subtitle: "HIV, HBsAg", keys: ["HIV 1&2 Antibodies","HBsAg"] },
+  ];
+
+  panels.forEach(panel => {
+    const panelTests = tests.filter(t =>
+      panel.keys.some(k => t.canonical === k || t.refKey === k) && typeof t.std_value === "number"
+    );
+    if (panelTests.length === 0) return;
+
+    const card = document.createElement("div");
+    card.className = "chart-card";
+
+    const canvasId = "chart_" + Math.random().toString(36).slice(2);
+    card.innerHTML = `
+      <div class="chart-card-title">${panel.title}</div>
+      <div class="chart-card-sub">${panel.subtitle}</div>
+      <div class="chart-wrap"><canvas id="${canvasId}"></canvas></div>
+    `;
+    grid.appendChild(card);
+
+    const labels = panelTests.map(t => t.canonical || t.raw_name);
+    const values = panelTests.map(t => t.std_value);
+    const refMins = panelTests.map(t => t.ref_range?.min ?? null);
+    const refMaxs = panelTests.map(t => t.ref_range && t.ref_range.max !== 999 ? t.ref_range.max : null);
+    const colors = panelTests.map(t => {
+      if (t.india_flag === "H") return "#ef4444";
+      if (t.india_flag === "L") return "#f59e0b";
+      return "#6c63ff";
+    });
+    const borderColors = panelTests.map(t => {
+      if (t.india_flag === "H") return "#ef4444cc";
+      if (t.india_flag === "L") return "#f59e0bcc";
+      return "#6c63ffcc";
+    });
+
+    setTimeout(() => {
+      const ctx = document.getElementById(canvasId).getContext("2d");
+      const chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Result",
+              data: values,
+              backgroundColor: colors.map(c => c + "99"),
+              borderColor: borderColors,
+              borderWidth: 1.5,
+              borderRadius: 4,
+              order: 1
+            },
+            {
+              label: "Ref Min",
+              data: refMins,
+              type: "scatter",
+              pointStyle: "line",
+              pointRadius: 10,
+              pointBorderWidth: 2,
+              borderColor: "#22c55e88",
+              backgroundColor: "#22c55e88",
+              showLine: false,
+              order: 0
+            },
+            {
+              label: "Ref Max",
+              data: refMaxs,
+              type: "scatter",
+              pointStyle: "line",
+              pointRadius: 10,
+              pointBorderWidth: 2,
+              borderColor: "#ef444488",
+              backgroundColor: "#ef444488",
+              showLine: false,
+              order: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                afterBody: (items) => {
+                  const idx = items[0]?.dataIndex;
+                  if (idx == null) return;
+                  const t = panelTests[idx];
+                  const lines = [];
+                  if (t.ref_range) lines.push(`Ref: ${t.ref_range.min}–${t.ref_range.max === 999 ? "∞" : t.ref_range.max} ${t.ref_range.unit}`);
+                  if (t.india_flag === "H") lines.push("⚠ Above India range");
+                  if (t.india_flag === "L") lines.push("⚠ Below India range");
+                  return lines;
+                }
+              },
+              backgroundColor: "#1a1a24",
+              borderColor: "#2a2a38",
+              borderWidth: 1,
+              titleColor: "#e8e8f0",
+              bodyColor: "#7a7a90"
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: "#7a7a90", font: { family: "'DM Mono'", size: 10 }, maxRotation: 30 },
+              grid: { color: "#ffffff10" }
+            },
+            y: {
+              ticks: { color: "#7a7a90", font: { family: "'DM Mono'", size: 10 } },
+              grid: { color: "#ffffff10" }
+            }
+          }
+        }
+      });
+      chartInstances.push(chart);
+    }, 50);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// LOINC GRID
+// ════════════════════════════════════════════════════════
+function renderLoincGrid(tests) {
+  const grid = document.getElementById("loincGrid");
+  grid.innerHTML = "";
+  tests.forEach(t => {
+    const statusClass = t.method === "exact" ? "loinc-verified" : t.method === "fuzzy" ? "loinc-mapped" : "loinc-inferred";
+    const statusText = t.method === "exact" ? "Exact" : t.method === "fuzzy" ? "Fuzzy" : "Unresolved";
+    const div = document.createElement("div");
+    div.className = "loinc-row";
+    div.innerHTML = `
+      <div class="loinc-from">
+        <div style="font-weight:500">${t.raw_name}</div>
+        ${t.canonical !== t.raw_name ? `<div class="loinc-name">${t.canonical}</div>` : ""}
+      </div>
+      <div class="loinc-arrow">→</div>
+      <div class="loinc-to">${t.loinc || "—"}</div>
+      <span class="loinc-status ${statusClass}">${statusText}</span>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// UI HELPERS
+// ════════════════════════════════════════════════════════
+function switchTab(tab, btn) {
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-" + tab).classList.add("active");
+  btn.classList.add("active");
+}
+
+// File input UI
+const fileInput = document.getElementById("fileInput");
+const dropZone = document.getElementById("dropZone");
+const fileChosen = document.getElementById("fileChosen");
+
+fileInput.addEventListener("change", () => {
+  const f = fileInput.files[0];
+  if (f) {
+    document.getElementById("fileChosenName").textContent = f.name;
+    document.getElementById("fileChosenSize").textContent = (f.size / 1024).toFixed(0) + " KB";
+    fileChosen.classList.add("show");
+    // Auto-fill patient info if we can read the filename
+  }
+});
+
+dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drag-over"); });
+dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag-over"));
+dropZone.addEventListener("drop", e => {
+  e.preventDefault();
+  dropZone.classList.remove("drag-over");
+  if (e.dataTransfer.files.length) {
+    const dt = new DataTransfer();
+    for (const f of e.dataTransfer.files) dt.items.add(f);
+    fileInput.files = dt.files;
+    fileInput.dispatchEvent(new Event("change"));
+  }
+});
+</script>
+</body>
+</html>
