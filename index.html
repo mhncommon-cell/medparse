@@ -1960,7 +1960,7 @@ async function runAnalysis() {
 
     const files = Array.from(fileInput.files);
 
-    // Helper: build content parts and call Claude for a batch of files
+    // Helper: build content parts and call Claude for a batch of files (with 429 auto-retry)
     async function callClaude(batchFiles) {
       const parts = [];
       for (const f of batchFiles) {
@@ -1972,7 +1972,8 @@ async function runAnalysis() {
         }
       }
       parts.push({ type: "text", text: "Extract all lab test data from this report and return ONLY the JSON object as specified in your instructions." });
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
+
+      const doFetch = async () => fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1983,6 +1984,22 @@ async function runAnalysis() {
         },
         body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 8192, system: buildSystemPrompt(), messages: [{ role: "user", content: parts }] })
       });
+
+      let r = await doFetch();
+      if (r.status === 429) {
+        let secs = 60;
+        setStep("step-extract", "active", `⏳ Rate limit hit — retrying in ${secs}s…`);
+        await new Promise(resolve => {
+          const timer = setInterval(() => {
+            secs--;
+            setStep("step-extract", "active", `⏳ Rate limit hit — retrying in ${secs}s…`);
+            if (secs <= 0) { clearInterval(timer); resolve(); }
+          }, 1000);
+        });
+        setStep("step-extract", "active", "Retrying extraction…");
+        r = await doFetch();
+      }
+
       if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(`API error ${r.status}: ${e.error?.message || JSON.stringify(e)}`); }
       const d = await r.json();
       return d.content.map(c => c.text || "").join("");
