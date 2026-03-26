@@ -6,6 +6,7 @@
 <title>MedParse — Indian Lab Report Analyzer</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsonrepair@3.12.0/dist/web/jsonrepair.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
 
@@ -1987,15 +1988,27 @@ async function runAnalysis() {
       return d.content.map(c => c.text || "").join("");
     }
 
+    // Helper: resolve jsonrepair function regardless of how the bundle exposes it
+    const _jsonRepairFn = (() => {
+      if (typeof window.jsonrepair === "function") return window.jsonrepair;
+      if (typeof window.jsonrepair === "object" && typeof window.jsonrepair?.jsonrepair === "function") return window.jsonrepair.jsonrepair;
+      return null;
+    })();
+
     // Helper: clean and parse one raw Claude response
     function parseRawText(txt) {
       const clean = txt.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim().replace(/[\r\n]+/g, " ");
-      try { return JSON.parse(clean); }
-      catch(e) {
-        const m = txt.match(/\{[\s\S]*\}/);
-        if (!m) throw new Error("No JSON found in response.\n" + txt.substring(0, 500));
-        return JSON.parse(m[0].replace(/[\r\n]+/g, " "));
+      // Pass 1: direct parse of cleaned text
+      try { return JSON.parse(clean); } catch(e1) { /* continue */ }
+      // Pass 2: extract outermost JSON object and retry
+      const m = txt.match(/\{[\s\S]*\}/);
+      const candidate = (m ? m[0] : clean).replace(/[\r\n]+/g, " ");
+      try { return JSON.parse(candidate); } catch(e2) { /* continue */ }
+      // Pass 3: jsonrepair to fix missing commas, NaN, bad escapes, etc.
+      if (_jsonRepairFn) {
+        try { return JSON.parse(_jsonRepairFn(candidate)); } catch(e3) { /* continue */ }
       }
+      throw new Error("JSON parse failed.\n\nRaw response (first 500 chars):\n" + txt.substring(0, 500));
     }
 
     // Check if the single PDF needs splitting
