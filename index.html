@@ -904,7 +904,7 @@ function renderResults(parsed, tests, age, gender) {
   // Test table
   const tbody = document.getElementById("testTableBody");
   tbody.innerHTML = "";
-  tests.forEach(t => {
+  tests.filter(t => t.result !== "TEST NOT TAKEN").forEach(t => {
     const isNumeric = typeof t.std_value === "number";
     const flag = t.india_flag || "NT";
     const flagLabel = { N: "Normal", H: "High", L: "Low", NT: "N/A", "?": "No Ref" }[flag] || flag;
