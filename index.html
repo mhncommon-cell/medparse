@@ -1572,7 +1572,8 @@ IMPORTANT RULES:
 5. Return ONLY the JSON object, nothing else
 6. CRITICAL — NO DUPLICATION: Each test must appear EXACTLY ONCE in the "tests" array. Never repeat a test under a different name variant. If a panel heading and a test line share the same name, include it only once as a test entry.
 7. CRITICAL — EXACT raw_name: Copy the test name EXACTLY as it appears in the report. Do not paraphrase, abbreviate, or rename. E.g. if the report says "HBsAg" do NOT rename it to "Hemoglobin" or "Hb".
-8. CRITICAL — DO NOT INVENT: Only extract tests that are visibly present in the report. Do not add tests based on what you expect a panel to contain.`;
+8. CRITICAL — DO NOT INVENT: Only extract tests that are visibly present in the report. Do not add tests based on what you expect a panel to contain.
+9. CRITICAL — COMPACT JSON: Return ONLY minified JSON with zero whitespace/indentation. No newlines between fields. This is mandatory to fit large reports in the output limit.`;
 }
 
 // ════════════════════════════════════════════════════════
