@@ -2084,7 +2084,9 @@ async function runAnalysis() {
     setStep("step-loinc", "active", "Resolving test names → LOINC codes…");
     const enrichedTests = tests.map(t => {
       const loincResult = resolveLOINC(t.raw_name);
-      return { ...t, ...loincResult };
+      // Rename LOINC resolution 'method' so it doesn't overwrite the lab's actual method field (e.g. "ICP-MS", "HPLC")
+      const { method: loinc_method, ...loincFields } = loincResult;
+      return { ...t, ...loincFields, loinc_method };
     });
     const resolved = enrichedTests.filter(t => t.loinc).length;
     setStep("step-loinc", "done", `Mapped ${resolved}/${enrichedTests.length} tests to LOINC codes`);
@@ -2370,8 +2372,8 @@ function renderLoincGrid(tests) {
   const grid = document.getElementById("loincGrid");
   grid.innerHTML = "";
   tests.forEach(t => {
-    const statusClass = t.method === "exact" ? "loinc-verified" : t.method === "fuzzy" ? "loinc-mapped" : "loinc-inferred";
-    const statusText = t.method === "exact" ? "Exact" : t.method === "fuzzy" ? "Fuzzy" : "Unresolved";
+    const statusClass = t.loinc_method === "exact" ? "loinc-verified" : t.loinc_method === "fuzzy" ? "loinc-mapped" : "loinc-inferred";
+    const statusText = t.loinc_method === "exact" ? "Exact" : t.loinc_method === "fuzzy" ? "Fuzzy" : "Unresolved";
     const div = document.createElement("div");
     div.className = "loinc-row";
     div.innerHTML = `
