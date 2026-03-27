@@ -1354,6 +1354,7 @@ const LOINC_ALIAS_MAP = {
   "fasting blood sugar": { loinc: "1558-6", canonical: "Glucose Fasting", refKey: "Glucose Fasting" },
   "fasting glucose": { loinc: "1558-6", canonical: "Glucose Fasting", refKey: "Glucose Fasting" },
   "glucose - fasting": { loinc: "1558-6", canonical: "Glucose Fasting", refKey: "Glucose Fasting" },
+  "fasting blood sugar (glucose)": { loinc: "1558-6", canonical: "Glucose Fasting", refKey: "Glucose Fasting" },
   // HbA1c
   "hba1c": { loinc: "4548-4", canonical: "HbA1c", refKey: "HbA1c" },
   "hemoglobin a1c": { loinc: "4548-4", canonical: "HbA1c", refKey: "HbA1c" },
@@ -1602,34 +1603,167 @@ const LOINC_ALIAS_MAP = {
   "urinary ph": { loinc: "5764-6", canonical: "Urine pH", refKey: "Urine pH" },
   "epithelial cells": { loinc: "5787-7", canonical: "Epithelial Cells", refKey: "Epithelial Cells" },
   "urinary epithelial cells": { loinc: "5787-7", canonical: "Epithelial Cells", refKey: "Epithelial Cells" },
+
+  // ── BUN (distinct from Urea) ─────────────────────────
+  "blood urea nitrogen": { loinc: "3094-0", canonical: "BUN", refKey: null },
+  "blood urea nitrogen (bun)": { loinc: "3094-0", canonical: "BUN", refKey: null },
+  "bun": { loinc: "3094-0", canonical: "BUN", refKey: null },
+  "urea (calculated)": { loinc: "3091-6", canonical: "Urea", refKey: "Urea" },
+  "bun/creatinine ratio": { loinc: "3097-3", canonical: "BUN/Creatinine Ratio", refKey: "BUN/Creatinine Ratio" },
+  "bun creatinine ratio": { loinc: "3097-3", canonical: "BUN/Creatinine Ratio", refKey: "BUN/Creatinine Ratio" },
+  "blood urea nitrogen/creatinine ratio": { loinc: "3097-3", canonical: "BUN/Creatinine Ratio", refKey: "BUN/Creatinine Ratio" },
+
+  // ── Lipid ratios ──────────────────────────────────────
+  "tc/hdl ratio": { loinc: "9830-1", canonical: "CHOL/HDL Ratio", refKey: "CHOL/HDL Ratio" },
+  "tc / hdl cholesterol ratio": { loinc: "9830-1", canonical: "CHOL/HDL Ratio", refKey: "CHOL/HDL Ratio" },
+  "hdl/ldl ratio": { loinc: "11054-4", canonical: "HDL/LDL Ratio", refKey: null },
+  "hdl / ldl ratio": { loinc: "11054-4", canonical: "HDL/LDL Ratio", refKey: null },
+  "trig/hdl ratio": { loinc: "11054-4", canonical: "Trig/HDL Ratio", refKey: null },
+  "trig / hdl ratio": { loinc: "11054-4", canonical: "Trig/HDL Ratio", refKey: null },
+  "ldl/hdl ratio": { loinc: "11054-4", canonical: "LDL/HDL Ratio", refKey: "LDL/HDL Ratio" },
+  "ldl / hdl ratio": { loinc: "11054-4", canonical: "LDL/HDL Ratio", refKey: "LDL/HDL Ratio" },
+
+  // ── Lipoproteins ──────────────────────────────────────
+  "apolipoprotein a1": { loinc: "1869-7", canonical: "Apolipoprotein A1", refKey: null },
+  "apolipoprotein a-1": { loinc: "1869-7", canonical: "Apolipoprotein A1", refKey: null },
+  "apo a1": { loinc: "1869-7", canonical: "Apolipoprotein A1", refKey: null },
+  "apolipoprotein b": { loinc: "1884-6", canonical: "Apolipoprotein B", refKey: null },
+  "apolipoprotein b100": { loinc: "1884-6", canonical: "Apolipoprotein B", refKey: null },
+  "apo b": { loinc: "1884-6", canonical: "Apolipoprotein B", refKey: null },
+  "apob/apoa1 ratio": { loinc: "33254-4", canonical: "ApoB/ApoA1 Ratio", refKey: null },
+  "lipoprotein (a)": { loinc: "10835-7", canonical: "Lipoprotein(a)", refKey: null },
+  "lp(a)": { loinc: "10835-7", canonical: "Lipoprotein(a)", refKey: null },
+  "lipoprotein a": { loinc: "10835-7", canonical: "Lipoprotein(a)", refKey: null },
+
+  // ── HDL direct / LDL direct ───────────────────────────
+  "hdl cholesterol - direct": { loinc: "2085-9", canonical: "HDL Cholesterol", refKey: "HDL Cholesterol" },
+  "hdl cholesterol – direct": { loinc: "2085-9", canonical: "HDL Cholesterol", refKey: "HDL Cholesterol" },
+  "ldl cholesterol - direct": { loinc: "13457-7", canonical: "LDL Cholesterol", refKey: "LDL Cholesterol" },
+  "ldl cholesterol – direct": { loinc: "13457-7", canonical: "LDL Cholesterol", refKey: "LDL Cholesterol" },
+  "vldl cholesterol": { loinc: "13458-5", canonical: "Cholesterol VLDL", refKey: "Cholesterol VLDL" },
+  "non-hdl cholesterol": { loinc: "43396-1", canonical: "Non-HDL Cholesterol", refKey: "Non-HDL Cholesterol" },
+
+  // ── Vitamins (expanded) ───────────────────────────────
+  "vitamin a": { loinc: "2923-1", canonical: "Vitamin A", refKey: null },
+  "retinol": { loinc: "2923-1", canonical: "Vitamin A", refKey: null },
+  "vitamin b1": { loinc: "14400-6", canonical: "Vitamin B1 (Thiamin)", refKey: null },
+  "thiamin": { loinc: "14400-6", canonical: "Vitamin B1 (Thiamin)", refKey: null },
+  "vitamin b1 / thiamin": { loinc: "14400-6", canonical: "Vitamin B1 (Thiamin)", refKey: null },
+  "vitamin b2": { loinc: "28478-2", canonical: "Vitamin B2 (Riboflavin)", refKey: null },
+  "riboflavin": { loinc: "28478-2", canonical: "Vitamin B2 (Riboflavin)", refKey: null },
+  "vitamin b2 / riboflavin": { loinc: "28478-2", canonical: "Vitamin B2 (Riboflavin)", refKey: null },
+  "vitamin b6": { loinc: "14597-9", canonical: "Vitamin B6 (P5P)", refKey: null },
+  "pyridoxal-5-phosphate": { loinc: "14597-9", canonical: "Vitamin B6 (P5P)", refKey: null },
+  "vitamin b6 / pyridoxal-5-phosphate": { loinc: "14597-9", canonical: "Vitamin B6 (P5P)", refKey: null },
+  "vitamin b7": { loinc: "LP31799-0", canonical: "Vitamin B7 (Biotin)", refKey: null },
+  "biotin": { loinc: "LP31799-0", canonical: "Vitamin B7 (Biotin)", refKey: null },
+  "vitamin b7 / biotin": { loinc: "LP31799-0", canonical: "Vitamin B7 (Biotin)", refKey: null },
+  "vitamin b9 / folic acid": { loinc: "2284-8", canonical: "Vitamin B9", refKey: "Vitamin B9" },
+  "vitamin d2": { loinc: "17785-7", canonical: "Vitamin D2", refKey: null },
+  "vitamin d3": { loinc: "14635-7", canonical: "Vitamin D3", refKey: null },
+  "vitamin d total": { loinc: "62292-8", canonical: "Vitamin D (25-OH)", refKey: "Vitamin D (25-OH)" },
+  "vitamin e": { loinc: "14590-4", canonical: "Vitamin E", refKey: null },
+  "alpha-tocopherol": { loinc: "14590-4", canonical: "Vitamin E", refKey: null },
+  "vitamin k": { loinc: "6692-8", canonical: "Vitamin K", refKey: null },
+  "phylloquinone": { loinc: "6692-8", canonical: "Vitamin K", refKey: null },
+
+  // ── Iron profile (extras) ─────────────────────────────
+  "transferrin serum": { loinc: "3034-6", canonical: "Transferrin Serum", refKey: null },
+  "serum transferrin": { loinc: "3034-6", canonical: "Transferrin Serum", refKey: null },
+
+  // ── Minerals & trace elements ─────────────────────────
+  "serum copper": { loinc: "5639-0", canonical: "Serum Copper", refKey: null },
+  "copper serum": { loinc: "5639-0", canonical: "Serum Copper", refKey: null },
+  "serum zinc": { loinc: "5757-0", canonical: "Serum Zinc", refKey: null },
+  "zinc serum": { loinc: "5757-0", canonical: "Serum Zinc", refKey: null },
+
+  // ── Liver extras ──────────────────────────────────────
+  "ggt": { loinc: "2324-2", canonical: "GGT", refKey: null },
+  "gamma gt": { loinc: "2324-2", canonical: "GGT", refKey: null },
+  "gamma-glutamyl transferase": { loinc: "2324-2", canonical: "GGT", refKey: null },
+  "sgot/sgpt ratio": { loinc: "LP36570-4", canonical: "AST/ALT Ratio", refKey: null },
+  "ast/alt ratio": { loinc: "LP36570-4", canonical: "AST/ALT Ratio", refKey: null },
+
+  // ── Inflammatory / oncology markers ──────────────────
+  "hs-crp": { loinc: "30522-7", canonical: "hs-CRP", refKey: "CRP" },
+  "high sensitivity crp": { loinc: "30522-7", canonical: "hs-CRP", refKey: "CRP" },
+  "hs crp": { loinc: "30522-7", canonical: "hs-CRP", refKey: "CRP" },
+  "cea": { loinc: "2857-1", canonical: "CEA", refKey: null },
+  "carcino embryonic antigen": { loinc: "2857-1", canonical: "CEA", refKey: null },
+  "carcinoembryonic antigen": { loinc: "2857-1", canonical: "CEA", refKey: null },
+
+  // ── Pancreatic enzymes ────────────────────────────────
+  "amylase": { loinc: "1798-8", canonical: "Amylase", refKey: null },
+  "serum amylase": { loinc: "1798-8", canonical: "Amylase", refKey: null },
+  "lipase": { loinc: "3040-3", canonical: "Lipase", refKey: null },
+  "serum lipase": { loinc: "3040-3", canonical: "Lipase", refKey: null },
+
+  // ── CBC extras ────────────────────────────────────────
+  "mpv": { loinc: "32623-4", canonical: "MPV", refKey: null },
+  "mean platelet volume": { loinc: "32623-4", canonical: "MPV", refKey: null },
+  "pdw": { loinc: "32207-6", canonical: "PDW", refKey: null },
+  "platelet distribution width": { loinc: "32207-6", canonical: "PDW", refKey: null },
+  "pct": { loinc: "LP348503-8", canonical: "Plateletcrit", refKey: null },
+  "plateletcrit": { loinc: "LP348503-8", canonical: "Plateletcrit", refKey: null },
+  "plateletcrit (pct)": { loinc: "LP348503-8", canonical: "Plateletcrit", refKey: null },
+  "ig%": { loinc: "71695-1", canonical: "Immature Granulocytes %", refKey: null },
+  "immature granulocytes": { loinc: "71695-1", canonical: "Immature Granulocytes %", refKey: null },
+  "rdw-sd": { loinc: "21000-5", canonical: "RDW-SD", refKey: null },
+  "rdwi": { loinc: "LP32082-0", canonical: "RDWI", refKey: null },
+  "mentzer index": { loinc: "LP436289-7", canonical: "Mentzer Index", refKey: null },
+  "total rbc": { loinc: "789-8", canonical: "RBC Count", refKey: "RBC Count" },
+
+  // ── Diabetes ──────────────────────────────────────────
+  "average blood glucose": { loinc: "LP31895-6", canonical: "Average Blood Glucose", refKey: null },
+  "abg": { loinc: "LP31895-6", canonical: "Average Blood Glucose", refKey: null },
+
+  // ── Thyroid ───────────────────────────────────────────
+  "tsh - ultrasensitive": { loinc: "3016-3", canonical: "TSH", refKey: "TSH" },
+  "tsh – ultrasensitive": { loinc: "3016-3", canonical: "TSH", refKey: "TSH" },
+  "total thyroxine (t4)": { loinc: "3026-2", canonical: "Total T4", refKey: "Total T4" },
+  "total triiodothyronine (t3)": { loinc: "3053-6", canonical: "Total T3", refKey: "Total T3" },
+
+  // ── Urinogram ─────────────────────────────────────────
+  "glucose (urine)": { loinc: "25428-4", canonical: "Urine Glucose", refKey: null },
+  "bilirubin (urine)": { loinc: "5770-3", canonical: "Urine Bilirubin", refKey: null },
+  "ketone": { loinc: "2514-8", canonical: "Urine Ketones", refKey: null },
+  "ketones (urine)": { loinc: "2514-8", canonical: "Urine Ketones", refKey: null },
+  "blood (urine)": { loinc: "5794-3", canonical: "Urine Blood", refKey: null },
+  "protein (urine)": { loinc: "20454-5", canonical: "Urine Protein", refKey: null },
+  "urobilinogen": { loinc: "13658-0", canonical: "Urine Urobilinogen", refKey: null },
+  "nitrite": { loinc: "5802-4", canonical: "Urine Nitrite", refKey: null },
+  "pus cells": { loinc: "5799-2", canonical: "Urine Pus Cells", refKey: null },
+  "leucocyte esterase": { loinc: "5802-4", canonical: "Urine Leukocyte Esterase", refKey: null },
 };
 
 function resolveLOINC(rawName) {
-  const key = rawName.toLowerCase().trim()
-    .replace(/\s+/g, " ")           // normalise whitespace
-    .replace(/[()\[\]]/g, "")      // strip brackets
-    .trim();
+  // Pre-normalisation exact check: lowercase + collapse whitespace only (no bracket stripping).
+  // If the raw name maps directly, it is a clean exact match — skip fuzzy entirely.
+  const rawKey = rawName.toLowerCase().trim().replace(/\s+/g, " ");
+  if (LOINC_ALIAS_MAP[rawKey]) {
+    return { ...LOINC_ALIAS_MAP[rawKey], inputName: rawName, loinc_method: "exact" };
+  }
 
-  // 1. Exact match (highest priority)
-  if (LOINC_ALIAS_MAP[key]) return { ...LOINC_ALIAS_MAP[key], inputName: rawName, method: "exact" };
+  // Full-normalisation key: additionally strip brackets for looser exact matching.
+  const key = rawKey.replace(/[()\[\]]/g, "").trim();
+  if (LOINC_ALIAS_MAP[key]) {
+    return { ...LOINC_ALIAS_MAP[key], inputName: rawName, loinc_method: "exact" };
+  }
 
-  // 2. Fuzzy: the input key must CONTAIN a known alias (alias is a substring of key)
-  //    Alias must be at least 5 chars to avoid short false-positives (e.g. "hb" inside "hbsag")
-  //    Also the alias must occupy most of the key (ratio guard) to prevent over-matching
+  // Fuzzy — only reached when NO exact match was found.
   let bestMatch = null, bestLen = 0;
   for (const [alias, data] of Object.entries(LOINC_ALIAS_MAP)) {
-    if (alias.length < 5) continue;          // skip short aliases in fuzzy mode
+    if (alias.length < 5) continue;
     if (key.includes(alias) && alias.length > bestLen) {
-      // Ratio guard: alias must be ≥60% of the key length so "hba1c" doesn't match "hba1c with eag"
       if (alias.length / key.length >= 0.5) {
         bestMatch = data;
         bestLen = alias.length;
       }
     }
   }
-  if (bestMatch) return { ...bestMatch, inputName: rawName, method: "fuzzy" };
+  if (bestMatch) return { ...bestMatch, inputName: rawName, loinc_method: "fuzzy" };
 
-  return { loinc: null, canonical: rawName, refKey: null, inputName: rawName, method: "unresolved" };
+  return { loinc: null, canonical: rawName, refKey: null, inputName: rawName, loinc_method: "unresolved" };
 }
 
 // ════════════════════════════════════════════════════════
@@ -1868,6 +2002,7 @@ IMPORTANT RULES:
 3. Capture previous visit values if shown in the report
 4. Do NOT interpret, flag, or add clinical judgement — just extract
 5. Return ONLY the JSON object, nothing else
+8. REFERENCE RANGES: Always extract the numeric reference range bounds printed next to each test. For ranges like "< 100", set lab_reference_min=null and lab_reference_max=100. For "> 40", set lab_reference_min=40 and lab_reference_max=null. For "70–100", set lab_reference_min=70 and lab_reference_max=100. Ignore text qualifiers like "Normal", "Desirable", etc. — only extract the numbers.
 6. CRITICAL — NO DUPLICATION: Each test must appear EXACTLY ONCE in the "tests" array. Never repeat a test under a different name variant. If a panel heading and a test line share the same name, include it only once as a test entry.
 7. CRITICAL — EXACT raw_name: Copy the test name EXACTLY as it appears in the report. Do not paraphrase, abbreviate, or rename. E.g. if the report says "HBsAg" do NOT rename it to "Hemoglobin" or "Hb".
 8. CRITICAL — DO NOT INVENT: Only extract tests that are visibly present in the report. Do not add tests based on what you expect a panel to contain.
@@ -1986,7 +2121,7 @@ async function runAnalysis() {
           "anthropic-dangerous-direct-browser-access": "true",
           ...(batchFiles.some(f => f.type === "application/pdf") ? { "anthropic-beta": "pdfs-2024-09-25" } : {})
         },
-        body: JSON.stringify({ model: "claude-sonnet-4-5", max_tokens: 8192, system: buildSystemPrompt(), messages: [{ role: "user", content: parts }] })
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4000, system: buildSystemPrompt(), messages: [{ role: "user", content: parts }] })
       });
 
       let r = await doFetch();
@@ -2088,9 +2223,8 @@ async function runAnalysis() {
     setStep("step-loinc", "active", "Resolving test names → LOINC codes…");
     const enrichedTests = tests.map(t => {
       const loincResult = resolveLOINC(t.raw_name);
-      // Rename LOINC resolution 'method' so it doesn't overwrite the lab's actual method field (e.g. "ICP-MS", "HPLC")
-      const { method: loinc_method, ...loincFields } = loincResult;
-      return { ...t, ...loincFields, loinc_method };
+      // loinc_method is already named correctly in resolveLOINC; spread won't clobber t.method (lab method).
+      return { ...t, ...loincResult };
     });
     const resolved = enrichedTests.filter(t => t.loinc).length;
     setStep("step-loinc", "done", `Mapped ${resolved}/${enrichedTests.length} tests to LOINC codes`);
@@ -2728,7 +2862,7 @@ async function runInsights() {
         "anthropic-dangerous-direct-browser-access": "true"
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5",
+        model: "claude-sonnet-4-20250514",
         max_tokens: 2048,
         system: "You are a clinical lab interpreter. Return ONLY valid JSON, no markdown, no prose.",
         messages: [{ role: "user", content: buildInsightsPrompt(data.tests, data.age, data.gender) }]
@@ -2871,7 +3005,7 @@ async function toggleExplain(event, rowId, testName, value, unit, flag, refRange
         "anthropic-dangerous-direct-browser-access": "true"
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-5",
+        model: "claude-sonnet-4-20250514",
         max_tokens: 250,
         messages: [{ role: "user", content:
           `Patient: ${patData.age||"?"}y ${patData.gender||"?"}.
