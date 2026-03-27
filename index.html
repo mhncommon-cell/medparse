@@ -423,7 +423,7 @@
     </div>
     <div class="field">
       <label>Report Date (optional)</label>
-      <input type="text" id="patDate" placeholder="e.g. 01-Apr-25">
+      <input type="text" id="patDate" placeholder="01-Apr-25, 01/04/2025, 2025-04-01…">
     </div>
   </div>
 
@@ -2079,6 +2079,7 @@ async function runAnalysis() {
   const fileInput = document.getElementById("fileInput");
   const age = parseFloat(document.getElementById("patAge").value);
   const gender = document.getElementById("patGender").value;
+  const patDateRaw = document.getElementById("patDate").value.trim();
   const apiKey = document.getElementById("apiKey").value.trim();
 
   if (!fileInput.files.length) { showError("Please upload a lab report file first."); return; }
@@ -2203,9 +2204,13 @@ async function runAnalysis() {
     }
 
     // Merge patient info from form if not in report
-    if (age && !parsed.patient?.age) parsed.patient = parsed.patient || {};
+    parsed.patient = parsed.patient || {};
     if (age) parsed.patient.age = parsed.patient.age || age;
     if (gender) parsed.patient.gender = parsed.patient.gender || gender;
+    if (patDateRaw) {
+      const normDate = parseDate(patDateRaw);
+      parsed.patient.sample_date = parsed.patient.sample_date || normDate || patDateRaw;
+    }
 
     const patAge = parsed.patient?.age || age || 35;
     const patGender = parsed.patient?.gender || gender || "Male";
@@ -2285,6 +2290,63 @@ async function runAnalysis() {
 }
 
 // ════════════════════════════════════════════════════════
+// DATE NORMALIZER
+// Accepts many Indian lab date formats → DD-MMM-YYYY
+// ════════════════════════════════════════════════════════
+(function() {
+  const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const MONTH_NAMES = {
+    jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11,
+    january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11
+  };
+
+  function pad(n) { return String(parseInt(n)).padStart(2,"0"); }
+  function expandYear(y) { y = parseInt(y); return y < 100 ? (y < 50 ? 2000+y : 1900+y) : y; }
+  function fmt(d, mon, y) {
+    const mi = typeof mon === "number" ? mon : MONTH_NAMES[String(mon).toLowerCase().slice(0,3)];
+    if (mi == null || mi < 0 || mi > 11) return null;
+    return `${pad(d)}-${MONTH_SHORT[mi]}-${expandYear(y)}`;
+  }
+
+  window.parseDate = function(str) {
+    if (!str) return null;
+    str = str.trim().replace(/\s+/g," ");
+    if (!str) return null;
+    let m;
+
+    // ISO YYYY-MM-DD
+    if ((m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)))
+      return fmt(m[3], parseInt(m[2])-1, m[1]);
+
+    // Compact YYYYMMDD
+    if ((m = str.match(/^(\d{4})(\d{2})(\d{2})$/)))
+      return fmt(m[3], parseInt(m[2])-1, m[1]);
+
+    // DD-MMM-YY(YY) or DD MMM YY(YY) or DD/MMM/YY(YY)
+    if ((m = str.match(/^(\d{1,2})[\-\/\s]([A-Za-z]{3,9})[\-\/\s](\d{2,4})$/)))
+      return fmt(m[1], m[2], m[3]);
+
+    // MMM-DD-YYYY or MMM DD, YYYY or April 1, 2025
+    if ((m = str.match(/^([A-Za-z]{3,9})[\-\/\s](\d{1,2})[,\s]+(\d{2,4})$/)))
+      return fmt(m[2], m[1], m[3]);
+
+    // DD/MM/YYYY or DD.MM.YYYY or DD-MM-YYYY (numeric month, Indian convention = DD/MM)
+    if ((m = str.match(/^(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{2,4})$/))) {
+      const [,a,b,y] = m;
+      // If first part > 12 it must be day; otherwise assume DD/MM (Indian)
+      return fmt(a, parseInt(b)-1, y);
+    }
+
+    // YYYY/MM/DD
+    if ((m = str.match(/^(\d{4})[\/\.](\d{1,2})[\/\.](\d{1,2})$/)))
+      return fmt(m[3], parseInt(m[2])-1, m[1]);
+
+    // Already a reasonable string — return as-is
+    return str;
+  };
+})();
+
+// ════════════════════════════════════════════════════════
 // RENDER RESULTS
 // ════════════════════════════════════════════════════════
 function renderResults(parsed, tests, age, gender) {
@@ -2295,7 +2357,7 @@ function renderResults(parsed, tests, age, gender) {
     (pat.name ? `${pat.name} — ` : "") + "Lab Report Analysis";
   const meta = document.getElementById("resultMeta");
   meta.innerHTML = [
-    pat.sample_date && `<span class="meta-chip">📅 ${pat.sample_date}</span>`,
+    pat.sample_date && `<span class="meta-chip">📅 ${parseDate(pat.sample_date) || pat.sample_date}</span>`,
     `<span class="meta-chip">👤 ${age}y ${gender}</span>`,
     pat.lab_name && `<span class="meta-chip">🏥 ${pat.lab_name}</span>`,
     pat.order_id && `<span class="meta-chip">🔖 ${pat.order_id}</span>`,
@@ -2356,7 +2418,7 @@ function renderResults(parsed, tests, age, gender) {
       <td>
         <span class="value-cell ${isNumeric ? (flag === "N" ? "normal" : flag === "H" ? "high" : flag === "L" ? "low" : "") : ""}">${isNumeric ? t.std_value : (t.std_value || "—")}</span>
         ${t.unit_converted ? `<span class="conv-badge">${t.auto_scaled ? "auto-scaled" : "conv"}</span>` : ""}
-        ${t.previous_value != null ? `<div class="convert-note">prev: ${t.previous_value} (${t.previous_date || "prior"})</div>` : ""}
+        ${t.previous_value != null ? `<div class="convert-note">prev: ${t.previous_value} (${parseDate(t.previous_date) || t.previous_date || "prior"})</div>` : ""}
       </td>
       <td><span class="unit-cell">${isNumeric ? (t.std_unit || "—") : "—"}</span></td>
       <td><span class="ref-cell">${refStr}</span></td>
@@ -2550,6 +2612,12 @@ fileInput.addEventListener("change", () => {
     fileChosen.classList.add("show");
     // Auto-fill patient info if we can read the filename
   }
+});
+
+// Normalize date field on blur
+document.getElementById("patDate").addEventListener("blur", function() {
+  const norm = parseDate(this.value.trim());
+  if (norm && norm !== this.value.trim()) this.value = norm;
 });
 
 dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drag-over"); });
