@@ -908,7 +908,8 @@ const REFERENCE_DB = {
       "HIV 1&2 Antibodies":{"min":0,"max":0.9,"unit":"S/CO"},
       "Urine Specific Gravity":{"min":1.016,"max":1.026,"unit":""},
       "Urine pH":{"min":4.6,"max":8.0,"unit":""},
-      "Epithelial Cells":{"min":10,"max":15,"unit":"cells/HPF"}
+      "Epithelial Cells":{"min":10,"max":15,"unit":"cells/HPF"},
+      "BUN/Creatinine Ratio":{"min":9,"max":20,"unit":""}
     },
     "senior_61_plus": {
       "Hemoglobin":{"min":13,"max":17,"unit":"g/dL"},
@@ -1377,6 +1378,9 @@ const LOINC_ALIAS_MAP = {
   "serum urea": { loinc: "3091-6", canonical: "Urea", refKey: "Urea" },
   "urea nitrogen": { loinc: "3091-6", canonical: "Urea", refKey: "Urea" },
   "bun": { loinc: "3094-0", canonical: "Urea", refKey: "Urea" },
+  "bun/creatinine ratio": { loinc: "3097-3", canonical: "BUN/Creatinine Ratio", refKey: "BUN/Creatinine Ratio" },
+  "bun creatinine ratio": { loinc: "3097-3", canonical: "BUN/Creatinine Ratio", refKey: "BUN/Creatinine Ratio" },
+  "blood urea nitrogen/creatinine ratio": { loinc: "3097-3", canonical: "BUN/Creatinine Ratio", refKey: "BUN/Creatinine Ratio" },
   // Cholesterol
   "cholesterol total": { loinc: "2093-3", canonical: "Cholesterol Total", refKey: "Cholesterol Total" },
   "total cholesterol": { loinc: "2093-3", canonical: "Cholesterol Total", refKey: "Cholesterol Total" },
