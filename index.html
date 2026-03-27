@@ -2250,24 +2250,38 @@ async function runAnalysis() {
     // ── STEP 5: Reference Range Lookup ──
     setStep("step-ref", "active", "Applying India age/gender-specific reference ranges…");
     const flaggedTests = unitStdTests.map(t => {
-      if (typeof t.std_value !== "number") return { ...t, india_flag: "NT", ref_range: null };
-      const ref = t.refKey ? getRefRange(patGender, patAge, t.refKey) : null;
-      let india_flag = "N";
-      let pct = null;
+      if (typeof t.std_value !== "number") return { ...t, india_flag: "NT", ref_range: null, ref_source: null };
+
+      // Primary: internal curated India reference DB
+      const internalRef = t.refKey ? getRefRange(patGender, patAge, t.refKey) : null;
+
+      // Fallback: lab's own printed reference range extracted from the report
+      const labMin = (t.lab_reference_min != null && !isNaN(t.lab_reference_min)) ? parseFloat(t.lab_reference_min) : null;
+      const labMax = (t.lab_reference_max != null && !isNaN(t.lab_reference_max)) ? parseFloat(t.lab_reference_max) : null;
+      const labRef = (labMin != null || labMax != null)
+        ? { min: labMin ?? 0, max: labMax ?? 999, unit: t.std_unit || t.unit || "" }
+        : null;
+
+      const ref = internalRef || labRef;
+      const ref_source = internalRef ? "india_db" : (labRef ? "lab" : null);
+
+      let india_flag = "N", pct = null;
       if (ref) {
-        const lo = ref.min, hi = ref.max === 999 ? t.std_value * 2 : ref.max;
+        const lo = ref.min ?? 0;
+        const hi = ref.max === 999 || ref.max == null ? t.std_value * 2 : ref.max;
         if (t.std_value < lo) india_flag = "L";
-        else if (t.std_value > ref.max && ref.max !== 999) india_flag = "H";
+        else if (ref.max != null && ref.max !== 999 && t.std_value > ref.max) india_flag = "H";
         else india_flag = "N";
         const range = hi - lo;
         pct = range > 0 ? Math.max(0, Math.min(100, ((t.std_value - lo) / range) * 100)) : 50;
       } else {
         india_flag = "?";
       }
-      return { ...t, india_flag, ref_range: ref, pct_of_range: pct };
+      return { ...t, india_flag, ref_range: ref, ref_source, pct_of_range: pct };
     });
     const abnormal = flaggedTests.filter(t => t.india_flag === "H" || t.india_flag === "L").length;
-    setStep("step-ref", "done", `${abnormal} values outside India reference range`);
+    const labRefCount = flaggedTests.filter(t => t.ref_source === "lab").length;
+    setStep("step-ref", "done", `${abnormal} values outside reference range${labRefCount ? ` · ${labRefCount} using lab-printed ranges` : ""}`);
 
     // ── STEP 6: Render ──
     setStep("step-plot", "active", "Building visualization…");
@@ -2421,7 +2435,10 @@ function renderResults(parsed, tests, age, gender) {
         ${t.previous_value != null ? `<div class="convert-note">prev: ${t.previous_value} (${parseDate(t.previous_date) || t.previous_date || "prior"})</div>` : ""}
       </td>
       <td><span class="unit-cell">${isNumeric ? (t.std_unit || "—") : "—"}</span></td>
-      <td><span class="ref-cell">${refStr}</span></td>
+      <td>
+        <span class="ref-cell">${refStr}</span>
+        ${t.ref_source === "lab" ? `<span title="Reference range from lab report" style="font-family:var(--font-mono);font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(167,139,250,0.12);color:var(--accent2);border:1px solid rgba(167,139,250,0.25);margin-left:5px">lab ref</span>` : ""}
+      </td>
       <td><span class="flag-pill flag-${flag}">${flagLabel}</span></td>
       <td style="min-width:100px">
         ${isNumeric && pct != null ? `
@@ -2489,13 +2506,32 @@ function renderCharts(tests) {
     { title: "Urine Chemistry", subtitle: "pH, Specific Gravity, Epithelial Cells", keys: ["Urine pH","Urine Specific Gravity","Epithelial Cells"] },
   ];
 
+  // Catch-all: numeric tests not covered by any named panel above
+  const allPanelKeys = new Set(panels.flatMap(p => p.keys));
+  const uncategorized = tests.filter(t =>
+    typeof t.std_value === "number" &&
+    !allPanelKeys.has(t.canonical) && !allPanelKeys.has(t.refKey)
+  );
+  // Group into sub-panels of max 8 to keep charts readable
+  for (let i = 0; i < uncategorized.length; i += 8) {
+    const chunk = uncategorized.slice(i, i + 8);
+    const hasLabRef = chunk.some(t => t.ref_source === "lab");
+    panels.push({
+      title: "Other Tests",
+      subtitle: hasLabRef ? "Lab-printed reference ranges" : "Additional parameters",
+      _chunk: chunk
+    });
+  }
+
   const flagColor = { H: "#ef4444", L: "#f59e0b", N: "#6c63ff", "?": "#7a7a90", NT: "#7a7a90" };
   const flagLabel = { H: "High", L: "Low", N: "OK", "?": "—", NT: "N/A" };
 
   panels.forEach(panel => {
-    const panelTests = tests.filter(t =>
-      panel.keys.some(k => t.canonical === k || t.refKey === k) && typeof t.std_value === "number"
-    );
+    const panelTests = panel._chunk
+      ? panel._chunk
+      : tests.filter(t =>
+          panel.keys.some(k => t.canonical === k || t.refKey === k) && typeof t.std_value === "number"
+        );
     if (panelTests.length === 0) return;
 
     const rows = panelTests.map(t => {
